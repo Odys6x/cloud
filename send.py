@@ -1,7 +1,10 @@
 import requests
 
-url = 'http://127.0.0.1:5000/receive'
-data = {"message": "Hello, server!"}
+url = 'https://winpredict-lol-f1461b39594b.herokuapp.com/receive'
+data = {"message": "Hello, Flask!"}
 
 response = requests.post(url, json=data)
-print(response.json())
+
+# Print the raw response for debugging
+print(f"Status Code: {response.status_code}")
+print(f"Response Text: {response.text}")

@@ -4,24 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Received Data</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-        <script>
-        // Auto-refresh the page every 5 seconds
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
+    <script>
+        // Function to fetch and display the data
+        async function fetchData() {
+            try {
+                const response = await fetch('/data'); // Fetch data from /data endpoint
+                const data = await response.json();   // Parse the JSON response
+
+                // Update the data list on the page
+                const dataList = document.getElementById('data-list');
+                dataList.innerHTML = ''; // Clear the existing data
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = JSON.stringify(item); // Display the data as JSON
+                    dataList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Fetch data every 5 seconds
+        setInterval(fetchData, 5000);
+
+        // Fetch data when the page loads
+        window.onload = fetchData;
     </script>
 </head>
 <body>
     <h1>Received Data</h1>
-    {% if data %}
-        <ul>
-            {% for item in data %}
-                <li>{{ item }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No data received yet.</p>
-    {% endif %}
+    <ul id="data-list">
+        <li>Loading...</li>
+    </ul>
 </body>
 </html>

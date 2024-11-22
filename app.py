@@ -18,12 +18,17 @@ def receive_data():
     # Respond with a success message
     return jsonify({"status": "success", "received_data": data})
 
-# Route to display the received data
+# Route to fetch the received data dynamically
+@app.route('/data', methods=['GET'])
+def get_data():
+    global received_data
+    # Return the received data as JSON
+    return jsonify(received_data)
+
+# Route to display the frontend
 @app.route('/')
 def index():
-    global received_data
-    # Render the received data using the index.html template
-    return render_template('index.html', data=received_data)
+    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
