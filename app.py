@@ -2,12 +2,10 @@ from flask import Flask, render_template, jsonify, request
 import torch
 import joblib
 from model import ComplexTabularModel
-from train import input_dim
 
 app = Flask(__name__)
 
-# Load the trained model and scaler
-model = ComplexTabularModel(input_dim=input_dim)
+model = ComplexTabularModel(input_dim=12)
 model.load_state_dict(torch.load("model/model.pth"))
 model.eval()
 scaler = joblib.load("model/scaler.pkl")
