@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Received Data</title>
-    <script>
+    <title>Real-Time Win Prediction</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <script>
         // Function to fetch and display the data
         async function fetchData() {
             try {
@@ -32,9 +34,17 @@
     </script>
 </head>
 <body>
-    <h1>Received Data</h1>
-    <ul id="data-list">
-        <li>Loading...</li>
-    </ul>
+    <div id="app">
+        <div class="sidebar">
+            <h2>Team Stats</h2>
+            <div id="team-order-stats"></div>
+            <div id="team-chaos-stats"></div>
+        </div>
+        <div class="main">
+            <h1>Win Probability</h1>
+            <canvas id="winChart"></canvas>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
 </body>
 </html>
