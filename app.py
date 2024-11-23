@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Public ngrok URL
-data_url = "https://92e9-202-166-153-36.ngrok-free.app/data"
+data_url = "https://de11-202-166-153-36.ngrok-free.app/data"
 
 def fetch_data():
     """Fetch data from the ngrok-exposed Flask endpoint."""
