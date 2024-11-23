@@ -142,8 +142,23 @@ while True:
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
-        team_order_stats_placeholder.write(f"**Team Order Stats**: {team_order_gold}")
-        team_chaos_stats_placeholder.write(f"**Team Chaos Stats**: {team_chaos_gold}")
+        team_order_stats_placeholder.write("### Team Order Stats")
+        team_order_stats_placeholder.json({
+            "Kills": team_order_gold,
+            "Deaths": team_order_gold,
+            "Assists": team_order_gold,
+            "Gold": team_order_gold,
+            "KDA": team_order_gold
+        })
+
+        team_chaos_stats_placeholder.write("### Team Chaos Stats")
+        team_chaos_stats_placeholder.json({
+            "Kills": team_order_gold,
+            "Deaths": team_order_gold,
+            "Assists": team_order_gold,
+            "Gold": team_order_gold,
+            "KDA": team_order_gold
+        })
         player_stats_placeholder.table(player_data)
         win_prob_placeholder.json(predictions)
     else:
