@@ -1,4 +1,5 @@
 import time
+
 import streamlit as st
 import requests
 import torch
@@ -24,7 +25,6 @@ team_chaos_stats_placeholder = st.sidebar.empty()
 player_stats_placeholder = st.empty()
 win_prob_placeholder = st.empty()
 
-@st.cache_data(ttl=5)  # Cache data for 5 seconds to avoid excessive calls
 def fetch_data():
     """Fetch data from the Flask app."""
     try:
@@ -40,12 +40,14 @@ def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_d
     passive_gold_per_10_seconds = 20.4
     starting_gold = 500
 
+    # Passive gold calculation
     if game_time >= 110:  # Assume passive gold starts at 110 seconds
         elapsed_passive_time = game_time - 110
         passive_gold = (elapsed_passive_time // 10) * passive_gold_per_10_seconds
     else:
         passive_gold = 0
 
+    # Gold from other sources
     gold_from_minions = minions_killed * 14
     gold_from_wards = wards_killed * 30
     gold_from_events = calculate_event_gold(player_name, event_data)
@@ -54,7 +56,7 @@ def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_d
 
 def calculate_event_gold(player_name, event_data):
     """Calculate gold from events."""
-    base_name = player_name.split("#")[0]
+    base_name = player_name.split("#")[0]  # Remove trailing identifier if present
     event_gold = 0
 
     for event in event_data:
@@ -83,13 +85,13 @@ def prepare_model_input(player_data, team_order_gold, team_chaos_gold):
     team_order_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER")
     team_order_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
     team_order_cs = sum(p["scores"].get("creepScore", 0) for p in player_data if p["team"] == "ORDER")
-    team_order_kda = round((team_order_kills + team_order_assists) / (team_order_deaths if team_order_deaths > 0 else 1), 2)
+    team_order_kda = team_order_kills / (team_order_deaths if team_order_deaths > 0 else 1)
 
     team_chaos_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS")
     team_chaos_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS")
     team_chaos_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
     team_chaos_cs = sum(p["scores"].get("creepScore", 0) for p in player_data if p["team"] == "CHAOS")
-    team_chaos_kda = round((team_chaos_kills + team_chaos_assists) / (team_chaos_deaths if team_chaos_deaths > 0 else 1), 2)
+    team_chaos_kda = team_chaos_kills / (team_chaos_deaths if team_chaos_deaths > 0 else 1)
 
     return [
         team_order_kills,
@@ -119,7 +121,7 @@ def predict_win_probability(model_input):
         "team_chaos_win": float(probs[0][0].item() * 100),
     }
 
-# Main Logic
+# Main loop
 while True:
     data = fetch_data()
     if data:
@@ -140,22 +142,10 @@ while True:
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
-        team_order_stats_placeholder.write("### Team Order Stats")
-        team_order_stats_placeholder.json({
-            "Kills": team_order_gold,
-            "Deaths": team_order_gold,
-            "Assists": team_order_gold,
-            "Gold": team_order_gold,
-            "KDA": team_order_gold
-        })
-
-        team_chaos_stats_placeholder.write("### Team Chaos Stats")
-        team_chaos_stats_placeholder.json({
-            "Kills": team_order_gold,
-            "Deaths": team_order_gold,
-            "Assists": team_order_gold,
-            "Gold": team_order_gold,
-            "KDA": team_order_gold
-        })
-
-    time.sleep(5)
+        team_order_stats_placeholder.write(f"**Team Order Stats**: {team_order_gold}")
+        team_chaos_stats_placeholder.write(f"**Team Chaos Stats**: {team_chaos_gold}")
+        player_stats_placeholder.table(player_data)
+        win_prob_placeholder.json(predictions)
+    else:
+        st.write("Waiting for data...")
+    time.sleep(5)  # Refresh every 5 seconds
