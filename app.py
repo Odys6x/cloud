@@ -138,26 +138,37 @@ while True:
             calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
             for p in player_data if p["team"] == "CHAOS"
         )
+        team_order_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "ORDER")
+        team_order_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER")
+        team_order_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
+        team_order_kda = round(
+            (team_order_kills + team_order_assists) / (team_order_deaths if team_order_deaths > 0 else 1), 2)
+
+        team_chaos_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS")
+        team_chaos_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS")
+        team_chaos_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
+        team_chaos_kda = round(
+            (team_chaos_kills + team_chaos_assists) / (team_chaos_deaths if team_chaos_deaths > 0 else 1), 2)
 
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
         team_order_stats_placeholder.write("### Team Order Stats")
         team_order_stats_placeholder.json({
-            "Kills": team_order_gold,
-            "Deaths": team_order_gold,
-            "Assists": team_order_gold,
+            "Kills": team_order_kills,
+            "Deaths": team_order_deaths,
+            "Assists": team_order_assists,
             "Gold": team_order_gold,
-            "KDA": team_order_gold
+            "KDA": team_order_kda
         })
 
         team_chaos_stats_placeholder.write("### Team Chaos Stats")
         team_chaos_stats_placeholder.json({
-            "Kills": team_order_gold,
-            "Deaths": team_order_gold,
-            "Assists": team_order_gold,
-            "Gold": team_order_gold,
-            "KDA": team_order_gold
+            "Kills": team_chaos_kills,
+            "Deaths": team_chaos_deaths,
+            "Assists": team_chaos_assists,
+            "Gold": team_chaos_gold,
+            "KDA": team_chaos_kda
         })
         player_stats_placeholder.table(player_data)
         win_prob_placeholder.json(predictions)
