@@ -5,7 +5,7 @@ import joblib
 from model import ComplexTabularModel
 
 # Public Flask API URL
-flask_url = "https://de11-202-166-153-36.ngrok-free.app/data"
+flask_url = "http://127.0.0.1:5000/data"
 
 # Load the trained model and scaler
 model = ComplexTabularModel(input_dim=12)  # Adjust input_dim as needed
@@ -38,14 +38,12 @@ def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_d
     passive_gold_per_10_seconds = 20.4
     starting_gold = 500
 
-    # Passive gold calculation
     if game_time >= 110:  # Assume passive gold starts at 110 seconds
         elapsed_passive_time = game_time - 110
         passive_gold = (elapsed_passive_time // 10) * passive_gold_per_10_seconds
     else:
         passive_gold = 0
 
-    # Gold from other sources
     gold_from_minions = minions_killed * 14
     gold_from_wards = wards_killed * 30
     gold_from_events = calculate_event_gold(player_name, event_data)
@@ -54,7 +52,7 @@ def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_d
 
 def calculate_event_gold(player_name, event_data):
     """Calculate gold from events."""
-    base_name = player_name.split("#")[0]  # Remove trailing identifier if present
+    base_name = player_name.split("#")[0]
     event_gold = 0
 
     for event in event_data:
@@ -119,31 +117,33 @@ def predict_win_probability(model_input):
         "team_chaos_win": float(probs[0][0].item() * 100),
     }
 
-# Main loop
-while True:
-    data = fetch_data()
-    if data:
-        player_data = data.get("player_data", [])
-        game_stats = data.get("game_stats", {})
-        event_data = data.get("event_data", {})
-        game_time = game_stats.get("gameTime", 0)
+# Refresh data every few seconds
+st.write("Fetching and updating data every 5 seconds...")
 
-        team_order_gold = sum(
-            calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
-            for p in player_data if p["team"] == "ORDER"
-        )
-        team_chaos_gold = sum(
-            calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
-            for p in player_data if p["team"] == "CHAOS"
-        )
+data = fetch_data()
+if data:
+    player_data = data.get("player_data", [])
+    game_stats = data.get("game_stats", {})
+    event_data = data.get("event_data", {})
+    game_time = game_stats.get("gameTime", 0)
 
-        model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
-        predictions = predict_win_probability(model_input)
+    team_order_gold = sum(
+        calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
+        for p in player_data if p["team"] == "ORDER"
+    )
+    team_chaos_gold = sum(
+        calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
+        for p in player_data if p["team"] == "CHAOS"
+    )
 
-        team_order_stats_placeholder.write(f"**Team Order Stats**: {team_order_gold}")
-        team_chaos_stats_placeholder.write(f"**Team Chaos Stats**: {team_chaos_gold}")
-        player_stats_placeholder.table(player_data)
-        win_prob_placeholder.json(predictions)
-    else:
-        st.write("Waiting for data...")
-    time.sleep(5)  # Refresh every 5 seconds
+    model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
+    predictions = predict_win_probability(model_input)
+
+    team_order_stats_placeholder.write(f"**Team Order Stats**: {team_order_gold}")
+    team_chaos_stats_placeholder.write(f"**Team Chaos Stats**: {team_chaos_gold}")
+    player_stats_placeholder.table(player_data)
+    win_prob_placeholder.json(predictions)
+else:
+    st.write("Waiting for data...")
+
+st.experimental_rerun()
