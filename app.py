@@ -236,6 +236,7 @@ while True:
                 game_time,
                 event_data
             )
+
             # Process items if they exist in the data
             if 'items' in player:
                 # Convert item IDs to proper format if needed
