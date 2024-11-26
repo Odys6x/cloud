@@ -1,125 +1,108 @@
 import time
-
 import streamlit as st
 import requests
 import torch
 import joblib
+import plotly.graph_objects as go
+import plotly.express as px
 from model import ComplexTabularModel
 
 # Public Flask API URL
 flask_url = "https://c3a2-151-192-226-94.ngrok-free.app/data"
 
 # Load the trained model and scaler
-model = ComplexTabularModel(input_dim=12)  # Adjust input_dim as needed
+model = ComplexTabularModel(input_dim=12)
 model.load_state_dict(torch.load("model/model.pth"))
 model.eval()
 scaler = joblib.load("model/scaler.pkl")
 
+# Page config
+st.set_page_config(layout="wide")
 st.title("League of Legends Win Prediction")
-st.sidebar.header("Team Stats")
-st.header("Win Probability")
 
-# Placeholders for dynamic updates
-team_order_stats_placeholder = st.sidebar.empty()
-team_chaos_stats_placeholder = st.sidebar.empty()
-player_stats_placeholder = st.empty()
-win_prob_placeholder = st.empty()
+# Initialize session state for historical data
+if 'historical_predictions' not in st.session_state:
+    st.session_state.historical_predictions = []
+    st.session_state.game_times = []
 
-def fetch_data():
-    """Fetch data from the Flask app."""
-    try:
-        response = requests.get(flask_url)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
-        return {}
+# Create tabs for different visualizations
+win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
 
-def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_data):
-    """Estimate gold for a player."""
-    passive_gold_per_10_seconds = 20.4
-    starting_gold = 500
+# Select chart type
+with win_prob_tab:
+    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
 
-    # Passive gold calculation
-    if game_time >= 110:  # Assume passive gold starts at 110 seconds
-        elapsed_passive_time = game_time - 110
-        passive_gold = (elapsed_passive_time // 10) * passive_gold_per_10_seconds
-    else:
-        passive_gold = 0
 
-    # Gold from other sources
-    gold_from_minions = minions_killed * 14
-    gold_from_wards = wards_killed * 30
-    gold_from_events = calculate_event_gold(player_name, event_data)
+def create_win_probability_chart(predictions, chart_type="Bar Chart"):
+    """Create either a bar chart or line chart for win probabilities."""
+    if chart_type == "Bar Chart":
+        fig = go.Figure(data=[
+            go.Bar(name='Team Order',
+                   x=['Win Probability'],
+                   y=[predictions['team_order_win']],
+                   marker_color='blue'),
+            go.Bar(name='Team Chaos',
+                   x=['Win Probability'],
+                   y=[predictions['team_chaos_win']],
+                   marker_color='red')
+        ])
+        fig.update_layout(
+            barmode='group',
+            title='Win Probability by Team',
+            yaxis_title='Probability (%)',
+            height=400
+        )
+    else:  # Line Chart
+        # Add current predictions to historical data
+        current_time = len(st.session_state.historical_predictions) * 5  # 5 second intervals
+        st.session_state.game_times.append(current_time)
+        st.session_state.historical_predictions.append([
+            predictions['team_order_win'],
+            predictions['team_chaos_win']
+        ])
 
-    return starting_gold + passive_gold + gold_from_minions + gold_from_wards + gold_from_events
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=st.session_state.game_times,
+            y=[pred[0] for pred in st.session_state.historical_predictions],
+            name='Team Order',
+            line=dict(color='blue')
+        ))
+        fig.add_trace(go.Scatter(
+            x=st.session_state.game_times,
+            y=[pred[1] for pred in st.session_state.historical_predictions],
+            name='Team Chaos',
+            line=dict(color='red')
+        ))
+        fig.update_layout(
+            title='Win Probability Over Time',
+            xaxis_title='Game Time (seconds)',
+            yaxis_title='Probability (%)',
+            height=400
+        )
 
-def calculate_event_gold(player_name, event_data):
-    """Calculate gold from events."""
-    base_name = player_name.split("#")[0]  # Remove trailing identifier if present
-    event_gold = 0
+    return fig
 
-    for event in event_data:
-        if not isinstance(event, dict):
-            continue
-        if event.get("KillerName") == base_name:
-            if event.get("EventName") == "DragonKill":
-                event_gold += 300
-            elif event.get("EventName") == "BaronKill":
-                event_gold += 500
-            elif event.get("EventName") == "TurretKilled":
-                event_gold += 250
-            elif event.get("EventName") == "ChampionKill":
-                event_gold += 300
-        elif base_name in event.get("Assisters", []):
-            if event.get("EventName") == "DragonKill":
-                event_gold += 100
-            elif event.get("EventName") == "BaronKill":
-                event_gold += 200
 
-    return event_gold
+def display_player_card(player, team_color):
+    """Create a styled card for player information."""
+    with st.container():
+        cols = st.columns([2, 1, 1, 1])
+        with cols[0]:
+            st.markdown(f"**{player['summonerName']}**")
+        with cols[1]:
+            st.metric("KDA",
+                      f"{player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}")
+        with cols[2]:
+            st.metric("Gold", f"{player.get('calculated_gold', 0):,.0f}")
+        with cols[3]:
+            st.metric("CS", player['scores'].get('creepScore', 0))
 
-def prepare_model_input(player_data, team_order_gold, team_chaos_gold):
-    """Prepare input features for the model."""
-    team_order_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "ORDER")
-    team_order_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER")
-    team_order_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
-    team_order_cs = sum(p["scores"].get("creepScore", 0) for p in player_data if p["team"] == "ORDER")
-    team_order_kda = team_order_kills / (team_order_deaths if team_order_deaths > 0 else 1)
+        # Add items if available
+        if 'items' in player:
+            st.write("Items:", ", ".join(player['items']))
+        st.markdown("---")
 
-    team_chaos_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS")
-    team_chaos_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS")
-    team_chaos_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
-    team_chaos_cs = sum(p["scores"].get("creepScore", 0) for p in player_data if p["team"] == "CHAOS")
-    team_chaos_kda = team_chaos_kills / (team_chaos_deaths if team_chaos_deaths > 0 else 1)
-
-    return [
-        team_order_kills,
-        team_order_deaths,
-        team_order_assists,
-        team_order_gold,
-        team_order_cs,
-        team_order_kda,
-        team_chaos_kills,
-        team_chaos_deaths,
-        team_chaos_assists,
-        team_chaos_gold,
-        team_chaos_cs,
-        team_chaos_kda,
-    ]
-
-def predict_win_probability(model_input):
-    """Use the model to predict win probabilities."""
-    scaled_input = scaler.transform([model_input])
-    input_tensor = torch.tensor(scaled_input, dtype=torch.float32)
-    with torch.no_grad():
-        prediction = model(input_tensor)
-        temperature = 3.0
-        probs = torch.softmax(prediction / temperature, dim=1)
-    return {
-        "team_order_win": float(probs[0][1].item() * 100),
-        "team_chaos_win": float(probs[0][0].item() * 100),
-    }
 
 # Main loop
 while True:
@@ -130,48 +113,62 @@ while True:
         event_data = data.get("event_data", {})
         game_time = game_stats.get("gameTime", 0)
 
-        team_order_gold = sum(
-            calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
-            for p in player_data if p["team"] == "ORDER"
-        )
-        team_chaos_gold = sum(
-            calculate_gold(p["summonerName"], p["scores"]["creepScore"], p["scores"]["wardScore"], game_time, event_data)
-            for p in player_data if p["team"] == "CHAOS"
-        )
-        team_order_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "ORDER")
-        team_order_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER")
-        team_order_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
-        team_order_kda = round(
-            (team_order_kills + team_order_assists) / (team_order_deaths if team_order_deaths > 0 else 1), 2)
+        # Calculate gold and prepare data
+        for player in player_data:
+            player['calculated_gold'] = calculate_gold(
+                player["summonerName"],
+                player["scores"]["creepScore"],
+                player["scores"]["wardScore"],
+                game_time,
+                event_data
+            )
 
-        team_chaos_kills = sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS")
-        team_chaos_deaths = sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS")
-        team_chaos_assists = sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
-        team_chaos_kda = round(
-            (team_chaos_kills + team_chaos_assists) / (team_chaos_deaths if team_chaos_deaths > 0 else 1), 2)
+        team_order_gold = sum(p['calculated_gold'] for p in player_data if p["team"] == "ORDER")
+        team_chaos_gold = sum(p['calculated_gold'] for p in player_data if p["team"] == "CHAOS")
 
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
-        team_order_stats_placeholder.write("### Team Order Stats")
-        team_order_stats_placeholder.json({
-            "Kills": team_order_kills,
-            "Deaths": team_order_deaths,
-            "Assists": team_order_assists,
-            "Gold": team_order_gold,
-            "KDA": team_order_kda
-        })
+        # Display win probability chart
+        with win_prob_tab:
+            fig = create_win_probability_chart(predictions, chart_type)
+            st.plotly_chart(fig, use_container_width=True)
 
-        team_chaos_stats_placeholder.write("### Team Chaos Stats")
-        team_chaos_stats_placeholder.json({
-            "Kills": team_chaos_kills,
-            "Deaths": team_chaos_deaths,
-            "Assists": team_chaos_assists,
-            "Gold": team_chaos_gold,
-            "KDA": team_chaos_kda
-        })
-        player_stats_placeholder.table(player_data)
-        win_prob_placeholder.json(predictions)
+            # Display overall team stats
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("### Team Order Overall")
+                st.json({
+                    "Total Gold": f"{team_order_gold:,.0f}",
+                    "Total Kills": sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "ORDER"),
+                    "Total Deaths": sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER"),
+                    "Total Assists": sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
+                })
+            with col2:
+                st.markdown("### Team Chaos Overall")
+                st.json({
+                    "Total Gold": f"{team_chaos_gold:,.0f}",
+                    "Total Kills": sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS"),
+                    "Total Deaths": sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS"),
+                    "Total Assists": sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
+                })
+
+        # Display team details
+        with teams_tab:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### Team Order")
+                for player in player_data:
+                    if player["team"] == "ORDER":
+                        display_player_card(player, "blue")
+
+            with col2:
+                st.markdown("### Team Chaos")
+                for player in player_data:
+                    if player["team"] == "CHAOS":
+                        display_player_card(player, "red")
+
     else:
         st.write("Waiting for data...")
-    time.sleep(5)  # Refresh every 5 seconds
+    time.sleep(5)
