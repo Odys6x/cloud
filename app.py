@@ -87,13 +87,13 @@ def prepare_model_input(player_data, team_order_gold, team_chaos_gold):
     ]
 
 
-def predict_win_probability(model_input):
+def predict_win_probability(model_input,game_time):
     """Use the model to predict win probabilities."""
     scaled_input = scaler.transform([model_input])
     input_tensor = torch.tensor(scaled_input, dtype=torch.float32)
     with torch.no_grad():
         prediction = model(input_tensor)
-        temperature = 3.0
+        temperature = time_based_temperature(game_time)
         probs = torch.softmax(prediction / temperature, dim=1)
     return {
         "team_order_win": float(probs[0][1].item() * 100),
@@ -131,6 +131,13 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
         df.index = st.session_state.game_times
         return st.line_chart(df, height=400)
 
+def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
+    if game_time >= max_time:
+        return min_temp
+    else:
+        # Linearly interpolate between max_temp and min_temp
+        decay_ratio = game_time / max_time
+        return max_temp - decay_ratio * (max_temp - min_temp)
 
 def display_player_card(player):
     """Create a styled card for player information."""
@@ -188,6 +195,7 @@ model.load_state_dict(torch.load("model/model.pth"))
 model.eval()
 scaler = joblib.load("model/scaler.pkl")
 
+
 # Page config
 st.set_page_config(layout="wide")
 st.title("League of Legends Win Prediction")
@@ -235,7 +243,7 @@ while True:
             # Sort items by slot
             if player['items']:
                 player['items'] = sorted(player['items'],
-                                         key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
+                key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
 
         # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
@@ -245,7 +253,8 @@ while True:
         team_chaos_gold = sum(p['calculated_gold'] for p in team_chaos_players)
 
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
-        predictions = predict_win_probability(model_input)
+        game_time_minutes = game_time / 60
+        predictions = predict_win_probability(model_input,game_time_minutes)
 
         # Update win probability chart
         with chart_placeholder.container():
