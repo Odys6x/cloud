@@ -20,6 +20,7 @@ def fetch_data():
         st.error(f"Error fetching data: {e}")
         return {}
 
+
 def calculate_event_gold(player_name, event_data):
     """Calculate gold from events."""
     base_name = player_name.split("#")[0]  # Remove trailing identifier if present
@@ -99,6 +100,87 @@ def predict_win_probability(model_input):
     }
 
 
+def create_win_probability_chart(predictions, chart_type="Bar Chart"):
+    """Create either a bar chart, line chart, or pie chart for win probabilities."""
+    if chart_type == "Bar Chart":
+        df = pd.DataFrame({
+            'Team': ['Team Order', 'Team Chaos'],
+            'Win Probability': [
+                predictions['team_order_win'],
+                predictions['team_chaos_win']
+            ]
+        })
+        return st.bar_chart(
+            df.set_index('Team'),
+            height=400
+        )
+    elif chart_type == "Pie Chart":
+        # Create pie chart data
+        df = pd.DataFrame({
+            'Team': ['Team Order', 'Team Chaos'],
+            'Win Probability': [
+                predictions['team_order_win'],
+                predictions['team_chaos_win']
+            ]
+        })
+        return st.pie_chart(df.set_index('Team'))
+    else:  # Line Chart
+        current_time = len(st.session_state.historical_predictions) * 5
+        st.session_state.game_times.append(current_time)
+        st.session_state.historical_predictions.append([
+            predictions['team_order_win'],
+            predictions['team_chaos_win']
+        ])
+
+        df = pd.DataFrame(
+            st.session_state.historical_predictions,
+            columns=['Team Order', 'Team Chaos']
+        )
+        df.index = st.session_state.game_times
+        return st.line_chart(df, height=400)
+
+
+def display_player_card(player):
+    """Create a styled card for player information."""
+    with st.container():
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            champion_name = player.get('championName', 'Unknown')
+            st.markdown(f"### {champion_name}")
+
+        with col2:
+            st.markdown(f"""
+            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+                <h3 style='margin: 0;'>{player['summonerName']}</h3>
+                <table style='width: 100%;'>
+                    <tr>
+                        <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
+                        <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
+                        <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+def display_team_stats(team_data, team_name, team_gold):
+    """Display team statistics in a formatted way."""
+    total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
+    total_deaths = sum(p["scores"].get("deaths", 0) for p in team_data)
+    total_assists = sum(p["scores"].get("assists", 0) for p in team_data)
+
+    st.markdown(f"### {team_name}")
+    cols = st.columns(4)
+    cols[0].metric("Total Gold", f"{team_gold:,.0f}")
+    cols[1].metric("Kills", total_kills)
+    cols[2].metric("Deaths", total_deaths)
+    cols[3].metric("Assists", total_assists)
+
+    st.markdown("---")
+    return total_kills, total_deaths, total_assists
+
+
 # Load the trained model and scaler
 model = ComplexTabularModel(input_dim=12)
 model.load_state_dict(torch.load("model/model.pth"))
@@ -126,99 +208,7 @@ with win_prob_tab:
 with teams_tab:
     team_details_placeholder = st.empty()
 
-
-def create_win_probability_chart(predictions, chart_type="Bar Chart"):
-    """Create either a bar chart, line chart, or pie chart for win probabilities."""
-    if chart_type == "Bar Chart":
-        df = pd.DataFrame({
-            'Team': ['Team Order', 'Team Chaos'],
-            'Win Probability': [
-                predictions['team_order_win'],
-                predictions['team_chaos_win']
-            ]
-        })
-        return st.bar_chart(
-            df.set_index('Team'),
-            height=400
-        )
-    elif chart_type == "Pie Chart":
-        # Create pie chart data
-        pie_data = pd.DataFrame({
-            'Team': ['Team Order', 'Team Chaos'],
-            'Probability': [
-                predictions['team_order_win'],
-                predictions['team_chaos_win']
-            ]
-        })
-        return st.pie_chart(pie_data.set_index('Team'))
-    else:  # Line Chart
-        current_time = len(st.session_state.historical_predictions) * 5
-        st.session_state.game_times.append(current_time)
-        st.session_state.historical_predictions.append([
-            predictions['team_order_win'],
-            predictions['team_chaos_win']
-        ])
-
-        df = pd.DataFrame(
-            st.session_state.historical_predictions,
-            columns=['Team Order', 'Team Chaos']
-        )
-        df.index = st.session_state.game_times
-        return st.line_chart(df, height=400)
-
-
-def display_player_card(player):
-    """Create a styled card for player information."""
-    with st.container():
-        col1, col2 = st.columns([1, 3])
-
-        with col1:
-            # Champion image (placeholder using champion name)
-            champion_name = player.get('championName', 'Unknown')
-            # You can replace this with actual champion images from Data Dragon
-            champion_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.4.1/img/champion/{champion_name}.png"
-            st.image(champion_img_url, width=100)
-
-        with col2:
-            st.markdown(f"""
-            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-                <h3 style='margin: 0;'>{player['summonerName']} ({champion_name})</h3>
-                <table style='width: 100%;'>
-                    <tr>
-                        <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
-                        <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
-                        <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
-                    </tr>
-                </table>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Display items
-            if 'items' in player:
-                st.markdown("#### Items:")
-                item_cols = st.columns(7)  # 6 item slots + 1 ward slot
-                for idx, item in enumerate(player['items']):
-                    if item:  # If item exists
-                        item_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.4.1/img/item/{item}.png"
-                        item_cols[idx].image(item_img_url, width=40)
-
-def display_team_stats(team_data, team_name, team_gold):
-    """Display team statistics in a formatted way."""
-    total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
-    total_deaths = sum(p["scores"].get("deaths", 0) for p in team_data)
-    total_assists = sum(p["scores"].get("assists", 0) for p in team_data)
-
-    st.markdown(f"### {team_name}")
-    cols = st.columns(4)
-    cols[0].metric("Total Gold", f"{team_gold:,.0f}")
-    cols[1].metric("Kills", total_kills)
-    cols[2].metric("Deaths", total_deaths)
-    cols[3].metric("Assists", total_assists)
-
-    st.markdown("---")
-    return total_kills, total_deaths, total_assists
-
-
+# Main loop
 while True:
     data = fetch_data()
     if data:
@@ -237,10 +227,6 @@ while True:
                 event_data
             )
 
-            # Process items if they exist in the data
-            if 'items' in player:
-                # Convert item IDs to proper format if needed
-                player['items'] = [str(item_id) for item_id in player['items'] if item_id > 0]
         # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
         team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
