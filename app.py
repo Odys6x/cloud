@@ -101,8 +101,9 @@ def predict_win_probability(model_input):
     }
 
 
+# Update the create_win_probability_chart function to remove pie chart:
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
-    """Create either a bar chart, line chart, or pie chart for win probabilities."""
+    """Create either a bar chart or line chart for win probabilities."""
     if chart_type == "Bar Chart":
         df = pd.DataFrame({
             'Team': ['Team Order', 'Team Chaos'],
@@ -115,16 +116,6 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             df.set_index('Team'),
             height=400
         )
-    elif chart_type == "Pie Chart":
-        # Create pie chart data
-        df = pd.DataFrame({
-            'Team': ['Team Order', 'Team Chaos'],
-            'Win Probability': [
-                predictions['team_order_win'],
-                predictions['team_chaos_win']
-            ]
-        })
-        return st.pie_chart(df.set_index('Team'))
     else:  # Line Chart
         current_time = len(st.session_state.historical_predictions) * 5
         st.session_state.game_times.append(current_time)
@@ -141,28 +132,27 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
         return st.line_chart(df, height=400)
 
 
+# Update the display_player_card function to show items and better champion info:
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        col1, col2 = st.columns([1, 3])
-
-        with col1:
-            champion_name = player.get('championName', 'Unknown')
-            st.markdown(f"### {champion_name}")
-
-        with col2:
-            st.markdown(f"""
-            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-                <h3 style='margin: 0;'>{player['summonerName']}</h3>
-                <table style='width: 100%;'>
-                    <tr>
-                        <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
-                        <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
-                        <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
-                    </tr>
-                </table>
+        st.markdown(f"""
+        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+            <h3 style='margin: 0;'>{player['summonerName']}</h3>
+            <p style='margin: 5px 0;'><b>Champion:</b> {player.get('championName', 'Unknown')}</p>
+            <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
+                <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
+                <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
+                <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
+
+        # If there are items in the data, display them
+        if 'items' in player and player['items']:
+            st.markdown("#### Items")
+            items_str = ", ".join(str(item) for item in player['items'] if item)
+            st.text(items_str)
 
 
 def display_team_stats(team_data, team_name, team_gold):
@@ -202,7 +192,7 @@ win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
 
 # Create placeholders for dynamic content
 with win_prob_tab:
-    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart", "Pie Chart"], horizontal=True)
+    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
     chart_placeholder = st.empty()
     team_stats_placeholder = st.empty()
 
@@ -227,6 +217,9 @@ while True:
                 game_time,
                 event_data
             )
+            # Make sure items exist in player data
+            if 'items' not in player:
+                player['items'] = []
 
         # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
