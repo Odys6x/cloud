@@ -8,7 +8,7 @@ import plotly.express as px
 from model import ComplexTabularModel
 
 # Public Flask API URL
-flask_url = "https://c3a2-151-192-226-94.ngrok-free.app/data"
+flask_url = "https://0dfd-151-192-226-94.ngrok-free.app/data"
 
 # Load the trained model and scaler
 model = ComplexTabularModel(input_dim=12)
