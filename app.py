@@ -7,7 +7,7 @@ import joblib
 from model import ComplexTabularModel
 
 # Public Flask API URL
-flask_url = "https://69f8-202-166-153-36.ngrok-free.app/data"
+flask_url = "https://756b-202-166-153-36.ngrok-free.app/data"
 
 # Load the trained model and scaler
 model = ComplexTabularModel(input_dim=12)  # Adjust input_dim as needed
