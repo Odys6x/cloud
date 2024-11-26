@@ -119,7 +119,7 @@ win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
 
 # Create placeholders for dynamic content
 with win_prob_tab:
-    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
+    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart", "Pie Chart"], horizontal=True)
     chart_placeholder = st.empty()
     team_stats_placeholder = st.empty()
 
@@ -128,7 +128,7 @@ with teams_tab:
 
 
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
-    """Create either a bar chart or line chart for win probabilities."""
+    """Create either a bar chart, line chart, or pie chart for win probabilities."""
     if chart_type == "Bar Chart":
         df = pd.DataFrame({
             'Team': ['Team Order', 'Team Chaos'],
@@ -141,6 +141,16 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             df.set_index('Team'),
             height=400
         )
+    elif chart_type == "Pie Chart":
+        # Create pie chart data
+        pie_data = pd.DataFrame({
+            'Team': ['Team Order', 'Team Chaos'],
+            'Probability': [
+                predictions['team_order_win'],
+                predictions['team_chaos_win']
+            ]
+        })
+        return st.pie_chart(pie_data.set_index('Team'))
     else:  # Line Chart
         current_time = len(st.session_state.historical_predictions) * 5
         st.session_state.game_times.append(current_time)
@@ -160,19 +170,37 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        st.markdown(f"""
-        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-            <h3 style='margin: 0;'>{player['summonerName']}</h3>
-            <table style='width: 100%;'>
-                <tr>
-                    <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
-                    <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
-                    <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
-                </tr>
-            </table>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 3])
 
+        with col1:
+            # Champion image (placeholder using champion name)
+            champion_name = player.get('championName', 'Unknown')
+            # You can replace this with actual champion images from Data Dragon
+            champion_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.4.1/img/champion/{champion_name}.png"
+            st.image(champion_img_url, width=100)
+
+        with col2:
+            st.markdown(f"""
+            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+                <h3 style='margin: 0;'>{player['summonerName']} ({champion_name})</h3>
+                <table style='width: 100%;'>
+                    <tr>
+                        <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
+                        <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
+                        <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Display items
+            if 'items' in player:
+                st.markdown("#### Items:")
+                item_cols = st.columns(7)  # 6 item slots + 1 ward slot
+                for idx, item in enumerate(player['items']):
+                    if item:  # If item exists
+                        item_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.4.1/img/item/{item}.png"
+                        item_cols[idx].image(item_img_url, width=40)
 
 def display_team_stats(team_data, team_name, team_gold):
     """Display team statistics in a formatted way."""
@@ -191,7 +219,6 @@ def display_team_stats(team_data, team_name, team_gold):
     return total_kills, total_deaths, total_assists
 
 
-# Main loop
 while True:
     data = fetch_data()
     if data:
@@ -209,7 +236,10 @@ while True:
                 game_time,
                 event_data
             )
-
+            # Process items if they exist in the data
+            if 'items' in player:
+                # Convert item IDs to proper format if needed
+                player['items'] = [str(item_id) for item_id in player['items'] if item_id > 0]
         # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
         team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
