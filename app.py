@@ -132,7 +132,6 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
         return st.line_chart(df, height=400)
 
 
-# Update the display_player_card function to show items and better champion info:
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
@@ -148,11 +147,22 @@ def display_player_card(player):
         </div>
         """, unsafe_allow_html=True)
 
-        # If there are items in the data, display them
+        # Display items
         if 'items' in player and player['items']:
             st.markdown("#### Items")
-            items_str = ", ".join(str(item) for item in player['items'] if item)
-            st.text(items_str)
+            items_cols = st.columns(7)  # 6 regular slots + 1 ward slot
+
+            for item in player['items']:
+                if isinstance(item, dict) and item.get('displayName'):
+                    slot = item.get('slot', 0)
+                    if 0 <= slot < 7:  # Valid slot numbers are 0-6
+                        with items_cols[slot]:
+                            st.markdown(f"""
+                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                                <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
+                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
+                            </div>
+                            """, unsafe_allow_html=True)
 
 
 def display_team_stats(team_data, team_name, team_gold):
@@ -217,9 +227,15 @@ while True:
                 game_time,
                 event_data
             )
-            # Make sure items exist in player data
-            if 'items' not in player:
+
+            # Ensure items are in the correct format
+            if not isinstance(player.get('items'), list):
                 player['items'] = []
+
+            # Sort items by slot
+            if player['items']:
+                player['items'] = sorted(player['items'],
+                                         key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
 
         # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
