@@ -5,7 +5,7 @@ import torch
 import joblib
 import pandas as pd
 from model import ComplexTabularModel
-import plotly.express as px
+
 
 # Public Flask API URL
 flask_url = "https://0dfd-151-192-226-94.ngrok-free.app/data"
@@ -100,6 +100,7 @@ def predict_win_probability(model_input):
         "team_chaos_win": float(probs[0][0].item() * 100),
     }
 
+
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
     """Create either a bar chart, line chart, or pie chart for win probabilities."""
     if chart_type == "Bar Chart":
@@ -115,7 +116,7 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             height=400
         )
     elif chart_type == "Pie Chart":
-        # Create pie chart data using plotly
+        # Create pie chart data
         df = pd.DataFrame({
             'Team': ['Team Order', 'Team Chaos'],
             'Win Probability': [
@@ -123,11 +124,7 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
                 predictions['team_chaos_win']
             ]
         })
-        fig = px.pie(df, values='Win Probability', names='Team',
-                     title='Win Probability Distribution',
-                     color_discrete_sequence=['rgb(0, 0, 255)', 'rgb(255, 0, 0)'])
-        fig.update_traces(textinfo='percent+label')
-        st.plotly_chart(fig)
+        return st.pie_chart(df.set_index('Team'))
     else:  # Line Chart
         current_time = len(st.session_state.historical_predictions) * 5
         st.session_state.game_times.append(current_time)
