@@ -209,7 +209,7 @@ with win_prob_tab:
 with teams_tab:
     team_details_placeholder = st.empty()
 
-# In your main loop, modify how items are processed:
+# Main loop
 while True:
     data = fetch_data()
     if data:
@@ -227,11 +227,53 @@ while True:
                 game_time,
                 event_data
             )
-
-            # Ensure items are in the correct format
-            if not isinstance(player.get('items'), list):
+            # Make sure items exist in player data
+            if 'items' not in player:
                 player['items'] = []
 
-            # Sort items by slot
-            if player['items']:
-                player['items'] = sorted(player['items'], key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
+        # Separate teams
+        team_order_players = [p for p in player_data if p["team"] == "ORDER"]
+        team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
+
+        team_order_gold = sum(p['calculated_gold'] for p in team_order_players)
+        team_chaos_gold = sum(p['calculated_gold'] for p in team_chaos_players)
+
+        model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
+        predictions = predict_win_probability(model_input)
+
+        # Update win probability chart
+        with chart_placeholder.container():
+            create_win_probability_chart(predictions, chart_type)
+
+        # Update team statistics
+        with team_stats_placeholder.container():
+            st.markdown("### Team Statistics")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                order_k, order_d, order_a = display_team_stats(
+                    team_order_players, "Team Order", team_order_gold
+                )
+
+            with col2:
+                chaos_k, chaos_d, chaos_a = display_team_stats(
+                    team_chaos_players, "Team Chaos", team_chaos_gold
+                )
+
+        # Update team details
+        with team_details_placeholder.container():
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### Team Order")
+                for player in team_order_players:
+                    display_player_card(player)
+
+            with col2:
+                st.markdown("### Team Chaos")
+                for player in team_chaos_players:
+                    display_player_card(player)
+
+    else:
+        st.write("Waiting for data...")
+    time.sleep(5)
