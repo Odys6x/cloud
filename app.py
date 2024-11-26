@@ -117,9 +117,14 @@ if 'historical_predictions' not in st.session_state:
 # Create tabs for different visualizations
 win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
 
-# Select chart type
+# Create placeholders for dynamic content
 with win_prob_tab:
     chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
+    chart_placeholder = st.empty()
+    team_stats_placeholder = st.empty()
+
+with teams_tab:
+    team_details_placeholder = st.empty()
 
 
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
@@ -215,11 +220,12 @@ while True:
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
-        # Display win probability chart
-        with win_prob_tab:
+        # Update win probability chart
+        with chart_placeholder.container():
             create_win_probability_chart(predictions, chart_type)
 
-            # Display team overall stats
+        # Update team statistics
+        with team_stats_placeholder.container():
             st.markdown("### Team Statistics")
             col1, col2 = st.columns(2)
 
@@ -233,8 +239,8 @@ while True:
                     team_chaos_players, "Team Chaos", team_chaos_gold
                 )
 
-        # Display team details
-        with teams_tab:
+        # Update team details
+        with team_details_placeholder.container():
             col1, col2 = st.columns(2)
 
             with col1:
