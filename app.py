@@ -3,8 +3,7 @@ import streamlit as st
 import requests
 import torch
 import joblib
-import plotly.graph_objects as go
-import plotly.express as px
+import pandas as pd
 from model import ComplexTabularModel
 
 # Public Flask API URL
@@ -36,20 +35,16 @@ with win_prob_tab:
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
     """Create either a bar chart or line chart for win probabilities."""
     if chart_type == "Bar Chart":
-        fig = go.Figure(data=[
-            go.Bar(name='Team Order',
-                   x=['Win Probability'],
-                   y=[predictions['team_order_win']],
-                   marker_color='blue'),
-            go.Bar(name='Team Chaos',
-                   x=['Win Probability'],
-                   y=[predictions['team_chaos_win']],
-                   marker_color='red')
-        ])
-        fig.update_layout(
-            barmode='group',
-            title='Win Probability by Team',
-            yaxis_title='Probability (%)',
+        # Create DataFrame for bar chart
+        df = pd.DataFrame({
+            'Team': ['Team Order', 'Team Chaos'],
+            'Win Probability': [
+                predictions['team_order_win'],
+                predictions['team_chaos_win']
+            ]
+        })
+        return st.bar_chart(
+            df.set_index('Team'),
             height=400
         )
     else:  # Line Chart
@@ -61,47 +56,48 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             predictions['team_chaos_win']
         ])
 
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=st.session_state.game_times,
-            y=[pred[0] for pred in st.session_state.historical_predictions],
-            name='Team Order',
-            line=dict(color='blue')
-        ))
-        fig.add_trace(go.Scatter(
-            x=st.session_state.game_times,
-            y=[pred[1] for pred in st.session_state.historical_predictions],
-            name='Team Chaos',
-            line=dict(color='red')
-        ))
-        fig.update_layout(
-            title='Win Probability Over Time',
-            xaxis_title='Game Time (seconds)',
-            yaxis_title='Probability (%)',
-            height=400
+        # Create DataFrame for line chart
+        df = pd.DataFrame(
+            st.session_state.historical_predictions,
+            columns=['Team Order', 'Team Chaos']
         )
+        df.index = st.session_state.game_times
+        return st.line_chart(df, height=400)
 
-    return fig
 
-
-def display_player_card(player, team_color):
+def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        cols = st.columns([2, 1, 1, 1])
-        with cols[0]:
-            st.markdown(f"**{player['summonerName']}**")
-        with cols[1]:
-            st.metric("KDA",
-                      f"{player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}")
-        with cols[2]:
-            st.metric("Gold", f"{player.get('calculated_gold', 0):,.0f}")
-        with cols[3]:
-            st.metric("CS", player['scores'].get('creepScore', 0))
+        # Player name and basic stats
+        st.markdown(f"""
+        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+            <h3 style='margin: 0;'>{player['summonerName']}</h3>
+            <table style='width: 100%;'>
+                <tr>
+                    <td><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</td>
+                    <td><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</td>
+                    <td><b>CS:</b> {player['scores'].get('creepScore', 0)}</td>
+                </tr>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # Add items if available
-        if 'items' in player:
-            st.write("Items:", ", ".join(player['items']))
-        st.markdown("---")
+
+def display_team_stats(team_data, team_name, team_gold):
+    """Display team statistics in a formatted way."""
+    total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
+    total_deaths = sum(p["scores"].get("deaths", 0) for p in team_data)
+    total_assists = sum(p["scores"].get("assists", 0) for p in team_data)
+
+    st.markdown(f"### {team_name}")
+    cols = st.columns(4)
+    cols[0].metric("Total Gold", f"{team_gold:,.0f}")
+    cols[1].metric("Kills", total_kills)
+    cols[2].metric("Deaths", total_deaths)
+    cols[3].metric("Assists", total_assists)
+
+    st.markdown("---")
+    return total_kills, total_deaths, total_assists
 
 
 # Main loop
@@ -123,35 +119,33 @@ while True:
                 event_data
             )
 
-        team_order_gold = sum(p['calculated_gold'] for p in player_data if p["team"] == "ORDER")
-        team_chaos_gold = sum(p['calculated_gold'] for p in player_data if p["team"] == "CHAOS")
+        # Separate teams
+        team_order_players = [p for p in player_data if p["team"] == "ORDER"]
+        team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
+
+        team_order_gold = sum(p['calculated_gold'] for p in team_order_players)
+        team_chaos_gold = sum(p['calculated_gold'] for p in team_chaos_players)
 
         model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
         predictions = predict_win_probability(model_input)
 
         # Display win probability chart
         with win_prob_tab:
-            fig = create_win_probability_chart(predictions, chart_type)
-            st.plotly_chart(fig, use_container_width=True)
+            create_win_probability_chart(predictions, chart_type)
 
-            # Display overall team stats
+            # Display team overall stats
+            st.markdown("### Team Statistics")
             col1, col2 = st.columns(2)
+
             with col1:
-                st.markdown("### Team Order Overall")
-                st.json({
-                    "Total Gold": f"{team_order_gold:,.0f}",
-                    "Total Kills": sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "ORDER"),
-                    "Total Deaths": sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "ORDER"),
-                    "Total Assists": sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "ORDER")
-                })
+                order_k, order_d, order_a = display_team_stats(
+                    team_order_players, "Team Order", team_order_gold
+                )
+
             with col2:
-                st.markdown("### Team Chaos Overall")
-                st.json({
-                    "Total Gold": f"{team_chaos_gold:,.0f}",
-                    "Total Kills": sum(p["scores"].get("kills", 0) for p in player_data if p["team"] == "CHAOS"),
-                    "Total Deaths": sum(p["scores"].get("deaths", 0) for p in player_data if p["team"] == "CHAOS"),
-                    "Total Assists": sum(p["scores"].get("assists", 0) for p in player_data if p["team"] == "CHAOS")
-                })
+                chaos_k, chaos_d, chaos_a = display_team_stats(
+                    team_chaos_players, "Team Chaos", team_chaos_gold
+                )
 
         # Display team details
         with teams_tab:
@@ -159,15 +153,13 @@ while True:
 
             with col1:
                 st.markdown("### Team Order")
-                for player in player_data:
-                    if player["team"] == "ORDER":
-                        display_player_card(player, "blue")
+                for player in team_order_players:
+                    display_player_card(player)
 
             with col2:
                 st.markdown("### Team Chaos")
-                for player in player_data:
-                    if player["team"] == "CHAOS":
-                        display_player_card(player, "red")
+                for player in team_chaos_players:
+                    display_player_card(player)
 
     else:
         st.write("Waiting for data...")
