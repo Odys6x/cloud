@@ -100,8 +100,6 @@ def predict_win_probability(model_input,game_time):
         "team_chaos_win": float(probs[0][0].item() * 100),
     }
 
-
-# Update the create_win_probability_chart function to remove pie chart:
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
     """Create either a bar chart or line chart for win probabilities."""
     if chart_type == "Bar Chart":
@@ -129,7 +127,20 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             columns=['Team Order', 'Team Chaos']
         )
         df.index = st.session_state.game_times
-        return st.line_chart(df, height=400)
+        
+        # Create line chart with markers
+        st.line_chart(
+            df,
+            height=400,
+            use_container_width=True
+        )
+        
+        # Display the current values as text below the chart
+        st.markdown(f"""
+        Current Probabilities:
+        - Team Order: {predictions['team_order_win']:.1f}%
+        - Team Chaos: {predictions['team_chaos_win']:.1f}%
+        """)
 
 def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
     if game_time >= max_time:
