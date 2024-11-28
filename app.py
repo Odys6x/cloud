@@ -8,7 +8,7 @@ from model import ComplexTabularModel
 
 
 # Public Flask API URL
-flask_url = "https://3b4b-103-30-215-136.ngrok-free.app/data"
+flask_url = "https://8150-103-30-215-136.ngrok-free.app/data"
 
 
 def fetch_data():
