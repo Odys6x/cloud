@@ -5,6 +5,8 @@ import torch
 import joblib
 import pandas as pd
 from model import ComplexTabularModel
+import altair as alt  # This is already included with Streamlit
+
 
 
 # Public Flask API URL
@@ -122,20 +124,30 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             predictions['team_chaos_win']
         ])
 
-        df = pd.DataFrame(
-            st.session_state.historical_predictions,
-            columns=['Team Order', 'Team Chaos']
+        # Create DataFrame for the chart
+        df = pd.DataFrame({
+            'Time': st.session_state.game_times,
+            'Team Order': [pred[0] for pred in st.session_state.historical_predictions],
+            'Team Chaos': [pred[1] for pred in st.session_state.historical_predictions]
+        })
+
+        # Melt the DataFrame to create a format suitable for Altair
+        df_melted = pd.melt(df, id_vars=['Time'], value_vars=['Team Order', 'Team Chaos'], 
+                           var_name='Team', value_name='Win Probability')
+
+        # Create Altair chart
+        chart = alt.Chart(df_melted).mark_line(point=True).encode(
+            x=alt.X('Time:Q', title='Game Time (seconds)'),
+            y=alt.Y('Win Probability:Q', title='Win Probability (%)'),
+            color=alt.Color('Team:N'),
+            tooltip=['Team:N', 'Win Probability:Q', 'Time:Q']
+        ).properties(
+            height=400
         )
-        df.index = st.session_state.game_times
-        
-        # Create line chart with markers
-        st.line_chart(
-            df,
-            height=400,
-            use_container_width=True
-        )
-        
-        # Display the current values as text below the chart
+
+        st.altair_chart(chart, use_container_width=True)
+
+        # Display current values
         st.markdown(f"""
         Current Probabilities:
         - Team Order: {predictions['team_order_win']:.1f}%
