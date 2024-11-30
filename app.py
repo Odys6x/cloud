@@ -7,12 +7,10 @@ import pandas as pd
 from model import ComplexTabularModel
 
 
-# Public Flask API URL
 flask_url = "https://a8b9-202-166-153-36.ngrok-free.app/data"
 
 
 def fetch_data():
-    """Fetch data from the Flask app."""
     try:
         response = requests.get(flask_url)
         response.raise_for_status()
@@ -23,8 +21,7 @@ def fetch_data():
 
 
 def calculate_event_gold(player_name, event_data):
-    """Calculate gold from events."""
-    base_name = player_name.split("#")[0]  # Remove trailing identifier if present
+    base_name = player_name.split("#")[0]
     event_gold = 0
 
     for event in event_data:
@@ -53,7 +50,7 @@ def calculate_gold(player_name, minions_killed, wards_killed, game_time, event_d
     passive_gold_per_10_seconds = 20.4
     starting_gold = 500
 
-    if game_time >= 110:  # Assume passive gold starts at 110 seconds
+    if game_time >= 110:
         elapsed_passive_time = game_time - 110
         passive_gold = (elapsed_passive_time // 10) * passive_gold_per_10_seconds
     else:
@@ -100,8 +97,6 @@ def predict_win_probability(model_input,game_time):
         "team_chaos_win": float(probs[0][0].item() * 100),
     }
 
-
-# Update the create_win_probability_chart function to remove pie chart:
 def create_win_probability_chart(predictions, chart_type="Bar Chart"):
     """Create either a bar chart or line chart for win probabilities."""
     if chart_type == "Bar Chart":
@@ -135,7 +130,6 @@ def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
     if game_time >= max_time:
         return min_temp
     else:
-        # Linearly interpolate between max_temp and min_temp
         decay_ratio = game_time / max_time
         return max_temp - decay_ratio * (max_temp - min_temp)
 
@@ -157,12 +151,12 @@ def display_player_card(player):
         # Display items
         if 'items' in player and player['items']:
             st.markdown("#### Items")
-            items_cols = st.columns(7)  # 6 regular slots + 1 ward slot
+            items_cols = st.columns(7)
 
             for item in player['items']:
                 if isinstance(item, dict) and item.get('displayName'):
                     slot = item.get('slot', 0)
-                    if 0 <= slot < 7:  # Valid slot numbers are 0-6
+                    if 0 <= slot < 7:
                         with items_cols[slot]:
                             st.markdown(f"""
                             <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
@@ -173,7 +167,6 @@ def display_player_card(player):
 
 
 def display_team_stats(team_data, team_name, team_gold):
-    """Display team statistics in a formatted way."""
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
     total_deaths = sum(p["scores"].get("deaths", 0) for p in team_data)
     total_assists = sum(p["scores"].get("assists", 0) for p in team_data)
@@ -189,26 +182,20 @@ def display_team_stats(team_data, team_name, team_gold):
     return total_kills, total_deaths, total_assists
 
 
-# Load the trained model and scaler
 model = ComplexTabularModel(input_dim=12)
 model.load_state_dict(torch.load("model/model.pth"))
 model.eval()
 scaler = joblib.load("model/scaler.pkl")
 
-
-# Page config
 st.set_page_config(layout="wide")
 st.title("League of Legends Win Prediction")
 
-# Initialize session state for historical data
 if 'historical_predictions' not in st.session_state:
     st.session_state.historical_predictions = []
     st.session_state.game_times = []
 
-# Create tabs for different visualizations
 win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
 
-# Create placeholders for dynamic content
 with win_prob_tab:
     chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
     chart_placeholder = st.empty()
@@ -217,7 +204,6 @@ with win_prob_tab:
 with teams_tab:
     team_details_placeholder = st.empty()
 
-# Main loop
 while True:
     data = fetch_data()
     if data:
@@ -226,7 +212,6 @@ while True:
         event_data = data.get("event_data", {})
         game_time = game_stats.get("gameTime", 0)
 
-        # Calculate gold and prepare data
         for player in player_data:
             player['calculated_gold'] = calculate_gold(
                 player["summonerName"],
@@ -236,16 +221,13 @@ while True:
                 event_data
             )
 
-            # Ensure items are in the correct format
             if not isinstance(player.get('items'), list):
                 player['items'] = []
 
-            # Sort items by slot
             if player['items']:
                 player['items'] = sorted(player['items'],
                 key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
 
-        # Separate teams
         team_order_players = [p for p in player_data if p["team"] == "ORDER"]
         team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
 
@@ -256,11 +238,9 @@ while True:
         game_time_minutes = game_time / 60
         predictions = predict_win_probability(model_input,game_time_minutes)
 
-        # Update win probability chart
         with chart_placeholder.container():
             create_win_probability_chart(predictions, chart_type)
 
-        # Update team statistics
         with team_stats_placeholder.container():
             st.markdown("### Team Statistics")
             col1, col2 = st.columns(2)
@@ -275,7 +255,6 @@ while True:
                     team_chaos_players, "Team Chaos", team_chaos_gold
                 )
 
-        # Update team details
         with team_details_placeholder.container():
             col1, col2 = st.columns(2)
 

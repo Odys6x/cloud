@@ -1,21 +1,18 @@
 from flask import Flask, jsonify
 import requests
 
-# Flask setup
 app = Flask(__name__)
 
-# Local League client URLs
 player_url = "https://127.0.0.1:2999/liveclientdata/playerlist"
 game_stats_url = "https://127.0.0.1:2999/liveclientdata/gamestats"
 event_url = "https://127.0.0.1:2999/liveclientdata/eventdata"
 
 
 def fetch_data(url):
-    """Fetch data from the specified League client API."""
     try:
         response = requests.get(url, verify=False)
         response.raise_for_status()
-        print(f"Successfully fetched data from {url}: {response.json()}")  # Debug: Print fetched data
+        print(f"Successfully fetched data from {url}: {response.json()}")
         return response.json()
     except Exception as e:
         print(f"Error fetching data from {url}: {e}")
@@ -23,7 +20,6 @@ def fetch_data(url):
 
 @app.route('/data', methods=['GET'])
 def get_data():
-    """Expose League client data as a JSON response."""
     print("Fetching player data...")
     player_data = fetch_data(player_url)
 
@@ -33,7 +29,6 @@ def get_data():
     print("Fetching event data...")
     event_data = fetch_data(event_url)
 
-    # Debug: Print all data before returning
     print("Fetched data:")
     print({
         "player_data": player_data,
