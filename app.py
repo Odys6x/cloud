@@ -5,10 +5,10 @@ import torch
 import joblib
 import pandas as pd
 from model import ComplexTabularModel
+import altair as alt
 
 
 flask_url = "https://a8b9-202-166-153-36.ngrok-free.app/data"
-
 
 def fetch_data():
     try:
@@ -119,12 +119,35 @@ def create_win_probability_chart(predictions, chart_type="Bar Chart"):
             predictions['team_chaos_win']
         ])
 
-        df = pd.DataFrame(
-            st.session_state.historical_predictions,
-            columns=['Team Order', 'Team Chaos']
+        # Create DataFrame for the chart
+        df = pd.DataFrame({
+            'Time': st.session_state.game_times,
+            'Team Order': [pred[0] for pred in st.session_state.historical_predictions],
+            'Team Chaos': [pred[1] for pred in st.session_state.historical_predictions]
+        })
+
+        # Melt the DataFrame to create a format suitable for Altair
+        df_melted = pd.melt(df, id_vars=['Time'], value_vars=['Team Order', 'Team Chaos'], 
+                           var_name='Team', value_name='Win Probability')
+
+        # Create Altair chart
+        chart = alt.Chart(df_melted).mark_line(point=True).encode(
+            x=alt.X('Time:Q', title='Game Time (seconds)'),
+            y=alt.Y('Win Probability:Q', title='Win Probability (%)'),
+            color=alt.Color('Team:N'),
+            tooltip=['Team:N', 'Win Probability:Q', 'Time:Q']
+        ).properties(
+            height=400
         )
-        df.index = st.session_state.game_times
-        return st.line_chart(df, height=400)
+
+        st.altair_chart(chart, use_container_width=True)
+
+        # Display current values
+        st.markdown(f"""
+        Current Probabilities:
+        - Team Order: {predictions['team_order_win']:.1f}%
+        - Team Chaos: {predictions['team_chaos_win']:.1f}%
+        """)
 
 def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
     if game_time >= max_time:
