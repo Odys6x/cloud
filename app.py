@@ -9,6 +9,7 @@ import altair as alt
 
 
 flask_url = "https://03fa-116-15-163-188.ngrok-free.app/data"
+summary_url = "https://03fa-116-15-163-188.ngrok-free.app/summarize"
 
 def fetch_data():
     try:
@@ -17,6 +18,16 @@ def fetch_data():
         return response.json()
     except Exception as e:
         st.error(f"Error fetching data: {e}")
+        return {}
+
+def fetch_summary():
+    """Fetch summary data from the /summarize endpoint."""
+    try:
+        response = requests.get(summary_url)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Error fetching summary: {e}")
         return {}
 
 
@@ -229,6 +240,7 @@ with teams_tab:
 
 while True:
     data = fetch_data()
+    summary_data = fetch_summary()
     if data:
         player_data = data.get("player_data", [])
         game_stats = data.get("game_stats", {})
@@ -290,6 +302,11 @@ while True:
                 st.markdown("### Team Chaos")
                 for player in team_chaos_players:
                     display_player_card(player)
+
+        if summary_data:
+            st.markdown("### Game Summary")
+            for key, value in summary_data.items():
+                st.markdown(f"**{key}:** {value}")
 
     else:
         st.write("Waiting for data...")

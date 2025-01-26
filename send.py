@@ -5,7 +5,7 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # OpenAI API Key
-client = OpenAI(api_key="yourapikey")
+client = OpenAI(api_key="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")
 # URLs for data fetching
 player_url = "https://127.0.0.1:2999/liveclientdata/playerlist"
 game_stats_url = "https://127.0.0.1:2999/liveclientdata/gamestats"
@@ -51,9 +51,9 @@ def summarize_data():
     # Call OpenAI API to summarize
     try:
         completion = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that provides summaries and reasoning for League of Legends game data in JSON format. Perhaps do explain why players did well and why some did not"},
+                {"role": "system", "content": "You are a helpful assistant that provides brief summaries and reasoning for League of Legends game data in JSON format. Perhaps do explain why players did well and why some did not"},
                 {"role": "user", "content": str(combined_data)}
             ]
         )
