@@ -303,10 +303,12 @@ while True:
                 for player in team_chaos_players:
                     display_player_card(player)
 
+        summary_placeholder = st.empty()
         if summary_data:
-            st.markdown("### Game Summary")
-            for key, value in summary_data.items():
-                st.markdown(f"**{key}:** {value}")
+            with summary_placeholder.container():  # Use the placeholder to overwrite
+                st.markdown("### Game Summary")
+                for key, value in summary_data.items():
+                    st.markdown(f"**{key}:** {value}")
 
     else:
         st.write("Waiting for data...")
