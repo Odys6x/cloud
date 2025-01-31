@@ -193,21 +193,23 @@ def display_player_card(player):
     champion_name = player.get('championName', 'Unknown')
     champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
 
-    # Generate items HTML
-    items_html = ""
+    # Generate items HTML with fixed positions
+    items_grid = [""] * 7  # Create empty slots for all 7 positions
     if 'items' in player and player['items']:
-        items_html = """<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;'>"""
         for item in player['items']:
             if isinstance(item, dict) and item.get('displayName'):
                 slot = item.get('slot', 0)
                 if 0 <= slot < 7:
-                    items_html += f"""
+                    items_grid[slot] = f"""
                         <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
                             <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
                             <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
                         </div>
                     """
-        items_html += "</div>"
+
+    items_html = """<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;'>"""
+    items_html += "".join(items_grid)
+    items_html += "</div>"
 
     # Render everything in a single markdown block
     st.markdown(f"""
