@@ -185,7 +185,7 @@ def get_champion_image_url(champion_name):
     champion_name = champion_name.replace(" ", "").replace("'", "").replace(".", "")
 
     # Using the tile endpoint with latest patch
-    return f"https://cdn.communitydragon.org/latest/champion/{champion_name}/tile"
+    return f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
 
 
 def display_player_card(player):
