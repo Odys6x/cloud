@@ -191,17 +191,52 @@ def get_champion_image_url(champion_name):
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        # Create two columns - one for image, one for info
-        img_col, info_col = st.columns([1, 4])  # 1:4 ratio
+        st.markdown(f"""
+        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+            <div style='display: flex; align-items: center;'>
+                <div style='flex: 0 0 60px; margin-right: 15px;'>  <!-- Image container -->
+        """, unsafe_allow_html=True)
 
-        with img_col:
-            champion_name = player.get('championName', 'Unknown')
-            try:
-                champion_img_url = get_champion_image_url(champion_name)
-                st.image(champion_img_url, width=100)
-            except Exception as e:
-                st.write(f"Champion: {champion_name}")
-                print(f"Error loading image for {champion_name}: {e}")  # For debugging
+        # Add champion image
+        champion_name = player.get('championName', 'Unknown')
+        try:
+            champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
+            st.image(champion_img_url, width=60)
+        except Exception as e:
+            st.write(f"Champion: {champion_name}")
+
+        # Continue with the rest of the card content
+        st.markdown(f"""
+                </div>
+                <div style='flex: 1;'>  <!-- Info container -->
+                    <h3 style='margin: 0;'>{player['summonerName']}</h3>
+                    <p style='margin: 5px 0;'><b>Champion:</b> {champion_name}</p>
+                    <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
+                        <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
+                        <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
+                        <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Display items
+        if 'items' in player and player['items']:
+            st.markdown("#### Items")
+            items_cols = st.columns(7)
+
+            for item in player['items']:
+                if isinstance(item, dict) and item.get('displayName'):
+                    slot = item.get('slot', 0)
+                    if 0 <= slot < 7:
+                        with items_cols[slot]:
+                            st.markdown(f"""
+                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                                <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
+                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
+                            </div>
+                            """, unsafe_allow_html=True)
 
 def display_team_stats(team_data, team_name, team_gold):
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
