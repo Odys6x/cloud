@@ -193,7 +193,7 @@ def display_player_card(player):
     champion_name = player.get('championName', 'Unknown')
     champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
 
-    # Main container and player info
+    # Open the container and add the main content
     st.markdown(f"""
         <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
             <div style='display: flex; align-items: flex-start;'>
@@ -210,17 +210,22 @@ def display_player_card(player):
                     </div>
                 </div>
             </div>
-            <div style='margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;'>
-                <h4 style='margin: 0 0 10px 0;'>Items</h4>
     """, unsafe_allow_html=True)
 
-    # Items section with Streamlit columns
-    item_cols = st.columns(7)
+    # Add Items section
+    st.markdown("""
+            <div style='margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;'>
+                <h4 style='margin: 0 0 10px 0;'>Items</h4>
+                <div style='display: flex; gap: 10px; flex-wrap: nowrap;'>
+    """, unsafe_allow_html=True)
+
+    # Add items using columns within the Items section
     if 'items' in player and player['items']:
+        cols = st.columns(7)
         sorted_items = sorted(player['items'], key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
         for i in range(7):
-            matching_item = next((item for item in sorted_items if isinstance(item, dict) and item.get('slot') == i), None)
-            with item_cols[i]:
+            with cols[i]:
+                matching_item = next((item for item in sorted_items if isinstance(item, dict) and item.get('slot') == i), None)
                 if matching_item:
                     st.markdown(f"""
                         <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
@@ -229,8 +234,9 @@ def display_player_card(player):
                         </div>
                     """, unsafe_allow_html=True)
 
-    # Close main container
+    # Close all divs
     st.markdown("""
+                </div>
             </div>
         </div>
     """, unsafe_allow_html=True)
