@@ -167,22 +167,34 @@ def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
         decay_ratio = game_time / max_time
         return max_temp - decay_ratio * (max_temp - min_temp)
 
+
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        st.markdown(f"""
-        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-            <h3 style='margin: 0;'>{player['summonerName']}</h3>
-            <p style='margin: 5px 0;'><b>Champion:</b> {player.get('championName', 'Unknown')}</p>
-            <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
-                <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
-                <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
-                <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Create two columns - one for image, one for info
+        img_col, info_col = st.columns([1, 4])  # 1:4 ratio
 
-        # Display items
+        with img_col:
+            # Get champion name and create Data Dragon URL
+            champion_name = player.get('championName', 'Unknown')
+            # Using the latest version of Data Dragon
+            champion_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/{champion_name}.png"
+            st.image(champion_img_url, width=100)
+
+        with info_col:
+            st.markdown(f"""
+            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+                <h3 style='margin: 0;'>{player['summonerName']}</h3>
+                <p style='margin: 5px 0;'><b>Champion:</b> {champion_name}</p>
+                <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
+                    <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
+                    <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
+                    <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Display items (unchanged)
         if 'items' in player and player['items']:
             st.markdown("#### Items")
             items_cols = st.columns(7)
@@ -197,7 +209,6 @@ def display_player_card(player):
                                 <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
                                 <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
                             </div>
-                            """, unsafe_allow_html=True)
 
 
 def display_team_stats(team_data, team_name, team_gold):
