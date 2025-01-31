@@ -191,24 +191,27 @@ def get_champion_image_url(champion_name):
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
-        st.markdown(f"""
-        <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-            <div style='display: flex; align-items: flex-start; margin-bottom: 10px;'>
-                <div style='flex: 0 0 60px; margin-right: 15px;'>  <!-- Image container -->
-        """, unsafe_allow_html=True)
+        # Main card container
+        with st.container():
+            st.markdown("""
+            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
+            """, unsafe_allow_html=True)
 
-        # Add champion image
-        champion_name = player.get('championName', 'Unknown')
-        try:
-            champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
-            st.image(champion_img_url, width=60)
-        except Exception as e:
-            st.write(f"Champion: {champion_name}")
+            # Player info row with flex layout
+            cols = st.columns([1, 5])
 
-        # Continue with the player info
-        st.markdown(f"""
-                </div>
-                <div style='flex: 1;'>  <!-- Info container -->
+            # Champion portrait
+            with cols[0]:
+                champion_name = player.get('championName', 'Unknown')
+                try:
+                    champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
+                    st.image(champion_img_url, width=60)
+                except Exception as e:
+                    st.write(f"Champion: {champion_name}")
+
+            # Player details
+            with cols[1]:
+                st.markdown(f"""
                     <h3 style='margin: 0;'>{player['summonerName']}</h3>
                     <p style='margin: 5px 0;'><b>Champion:</b> {champion_name}</p>
                     <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
@@ -216,35 +219,32 @@ def display_player_card(player):
                         <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
                         <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
                     </div>
+                """, unsafe_allow_html=True)
+
+            # Items section
+            if 'items' in player and player['items']:
+                st.markdown("""
+                <div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;'>
+                    <h4 style='margin: 0 0 10px 0;'>Items</h4>
                 </div>
-            </div>
-        """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-        # Display items within the same container
-        if 'items' in player and player['items']:
-            st.markdown("""
-            <div style='margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;'>
-                <p style='font-size: 14px; font-weight: bold; margin-bottom: 5px;'>Items</p>
-            """, unsafe_allow_html=True)
+                # Create columns for items
+                item_cols = st.columns(7)
+                for item in player['items']:
+                    if isinstance(item, dict) and item.get('displayName'):
+                        slot = item.get('slot', 0)
+                        if 0 <= slot < 7:
+                            with item_cols[slot]:
+                                st.markdown(f"""
+                                <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                                    <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
+                                    <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
+                                </div>
+                                """, unsafe_allow_html=True)
 
-            # Create a flex container for items
-            st.markdown("<div style='display: flex; justify-content: flex-start; gap: 10px;'>", unsafe_allow_html=True)
-
-            # Display items
-            for item in player['items']:
-                if isinstance(item, dict) and item.get('displayName'):
-                    st.markdown(f"""
-                        <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px; flex: 0 0 auto;'>
-                            <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
-                            <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-            # Close the flex container
+            # Close the main container
             st.markdown("</div>", unsafe_allow_html=True)
-
-        # Close the main container
-        st.markdown("</div>", unsafe_allow_html=True)
 
 def display_team_stats(team_data, team_name, team_gold):
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
