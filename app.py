@@ -190,51 +190,35 @@ def get_champion_image_url(champion_name):
 
 def display_player_card(player):
     """Create a styled card for player information."""
-    champion_name = player.get('championName', 'Unknown')
-    champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
-
-    # Create a container
     with st.container():
         st.markdown(f"""
         <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-            <div style='display: flex; align-items: flex-start;'>
-                <div style='flex: 0 0 60px; margin-right: 15px;'>
-                    <img src="{champion_img_url}" style="width: 60px; height: 60px; border-radius: 5px;">
-                </div>
-                <div style='flex: 1;'>
-                    <h3 style='margin: 0;'>{player['summonerName']}</h3>
-                    <p style='margin: 5px 0;'><b>Champion:</b> {champion_name}</p>
-                    <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
-                        <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
-                        <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
-                        <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
-                    </div>
-                </div>
+            <h3 style='margin: 0;'>{player['summonerName']}</h3>
+            <p style='margin: 5px 0;'><b>Champion:</b> {player.get('championName', 'Unknown')}</p>
+            <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
+                <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
+                <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
+                <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
             </div>
-            <div style='margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;'>
-                <h4 style='margin: 0 0 10px 0;'>Items</h4>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Items using columns (inside the container but still in the main div)
-        if 'items' in player and player['items']:
-            cols = st.columns(7)
-            sorted_items = sorted(player['items'], key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
-            for i in range(7):
-                with cols[i]:
-                    matching_item = next((item for item in sorted_items if isinstance(item, dict) and item.get('slot') == i), None)
-                    if matching_item:
-                        st.markdown(f"""
-                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
-                                <p style='font-size: 12px; margin: 0;'>{matching_item['displayName']}</p>
-                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {matching_item['price']}g</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-
-        # Close the main container div
-        st.markdown("""
         </div>
         """, unsafe_allow_html=True)
+
+        # Display items
+        if 'items' in player and player['items']:
+            st.markdown("#### Items")
+            items_cols = st.columns(7)
+
+            for item in player['items']:
+                if isinstance(item, dict) and item.get('displayName'):
+                    slot = item.get('slot', 0)
+                    if 0 <= slot < 7:
+                        with items_cols[slot]:
+                            st.markdown(f"""
+                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                                <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
+                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
+                            </div>
+                            """, unsafe_allow_html=True)
 
 def display_team_stats(team_data, team_name, team_gold):
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
