@@ -193,25 +193,7 @@ def display_player_card(player):
     champion_name = player.get('championName', 'Unknown')
     champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
 
-    # Generate items HTML with fixed positions
-    items_grid = [""] * 7  # Create empty slots for all 7 positions
-    if 'items' in player and player['items']:
-        for item in player['items']:
-            if isinstance(item, dict) and item.get('displayName'):
-                slot = item.get('slot', 0)
-                if 0 <= slot < 7:
-                    items_grid[slot] = f"""
-                        <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
-                            <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
-                            <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
-                        </div>
-                    """
-
-    items_html = """<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;'>"""
-    items_html += "".join(items_grid)
-    items_html += "</div>"
-
-    # Render everything in a single markdown block
+    # Main container and player info
     st.markdown(f"""
         <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
             <div style='display: flex; align-items: flex-start;'>
@@ -230,7 +212,25 @@ def display_player_card(player):
             </div>
             <div style='margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;'>
                 <h4 style='margin: 0 0 10px 0;'>Items</h4>
-                {items_html}
+    """, unsafe_allow_html=True)
+
+    # Items section with Streamlit columns
+    item_cols = st.columns(7)
+    if 'items' in player and player['items']:
+        sorted_items = sorted(player['items'], key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
+        for i in range(7):
+            matching_item = next((item for item in sorted_items if isinstance(item, dict) and item.get('slot') == i), None)
+            with item_cols[i]:
+                if matching_item:
+                    st.markdown(f"""
+                        <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                            <p style='font-size: 12px; margin: 0;'>{matching_item['displayName']}</p>
+                            <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {matching_item['price']}g</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+    # Close main container
+    st.markdown("""
             </div>
         </div>
     """, unsafe_allow_html=True)
