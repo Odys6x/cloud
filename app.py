@@ -192,28 +192,8 @@ def display_player_card(player):
     """Create a styled card for player information."""
     champion_name = player.get('championName', 'Unknown')
     champion_img_url = f"https://cdn.communitydragon.org/latest/champion/{champion_name}/portrait"
-    items_html = ""
 
-    # Generate items HTML
-    if 'items' in player and player['items']:
-        items_html = """
-        <div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;'>
-            <h4 style='margin: 0 0 10px 0;'>Items</h4>
-            <div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;'>
-        """
-        for item in player['items']:
-            if isinstance(item, dict) and item.get('displayName'):
-                slot = item.get('slot', 0)
-                if 0 <= slot < 7:
-                    items_html += f"""
-                    <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
-                        <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
-                        <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
-                    </div>
-                    """
-        items_html += "</div></div>"
-
-    # Combine all HTML into a single markdown block
+    # Start main card container
     st.markdown(f"""
         <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
             <div style='display: flex; align-items: flex-start;'>
@@ -230,9 +210,32 @@ def display_player_card(player):
                     </div>
                 </div>
             </div>
-            {items_html}
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+
+    # Items section
+    if 'items' in player and player['items']:
+        st.markdown("""
+            <div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;'>
+                <h4 style='margin: 0 0 10px 0;'>Items</h4>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Create grid for items
+        cols = st.columns(7)
+        for item in player['items']:
+            if isinstance(item, dict) and item.get('displayName'):
+                slot = item.get('slot', 0)
+                if 0 <= slot < 7:
+                    with cols[slot]:
+                        st.markdown(f"""
+                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
+                                <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
+                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+    # Close main container
+    st.markdown("</div>", unsafe_allow_html=True)
 
 def display_team_stats(team_data, team_name, team_gold):
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
