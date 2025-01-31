@@ -168,6 +168,26 @@ def time_based_temperature(game_time, max_temp=3.0, min_temp=1.0, max_time=10):
         return max_temp - decay_ratio * (max_temp - min_temp)
 
 
+def get_champion_image_url(champion_name):
+    """Convert champion name to proper format for image URL."""
+    # Handle special cases
+    name_corrections = {
+        "Nunu & Willump": "Nunu",
+        "Renata Glasc": "Renata",
+        "Wukong": "MonkeyKing",
+        # Add more special cases as needed
+    }
+
+    # Use corrected name if it exists, otherwise use original
+    champion_name = name_corrections.get(champion_name, champion_name)
+
+    # Remove spaces and special characters
+    champion_name = champion_name.replace(" ", "").replace("'", "").replace(".", "")
+
+    # Using the tile endpoint with latest patch
+    return f"https://cdn.communitydragon.org/latest/champion/{champion_name}/tile"
+
+
 def display_player_card(player):
     """Create a styled card for player information."""
     with st.container():
@@ -175,41 +195,13 @@ def display_player_card(player):
         img_col, info_col = st.columns([1, 4])  # 1:4 ratio
 
         with img_col:
-            # Get champion name and create Data Dragon URL
             champion_name = player.get('championName', 'Unknown')
-            # Using the latest version of Data Dragon
-            champion_img_url = f"https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/{champion_name}.png"
-            st.image(champion_img_url, width=100)
-
-        with info_col:
-            st.markdown(f"""
-            <div style='padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px;'>
-                <h3 style='margin: 0;'>{player['summonerName']}</h3>
-                <p style='margin: 5px 0;'><b>Champion:</b> {champion_name}</p>
-                <div style='display: flex; justify-content: space-between; margin: 10px 0;'>
-                    <div><b>KDA:</b> {player['scores'].get('kills', 0)}/{player['scores'].get('deaths', 0)}/{player['scores'].get('assists', 0)}</div>
-                    <div><b>Gold:</b> {player.get('calculated_gold', 0):,.0f}</div>
-                    <div><b>CS:</b> {player['scores'].get('creepScore', 0)}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # Display items (unchanged)
-        if 'items' in player and player['items']:
-            st.markdown("#### Items")
-            items_cols = st.columns(7)
-
-            for item in player['items']:
-                if isinstance(item, dict) and item.get('displayName'):
-                    slot = item.get('slot', 0)
-                    if 0 <= slot < 7:
-                        with items_cols[slot]:
-                            st.markdown(f"""
-                            <div style='padding: 5px; border: 1px solid #ddd; border-radius: 3px; margin: 2px;'>
-                                <p style='font-size: 12px; margin: 0;'>{item['displayName']}</p>
-                                <p style='font-size: 10px; color: gray; margin: 0;'>Cost: {item['price']}g</p>
-                            </div>
-
+            try:
+                champion_img_url = get_champion_image_url(champion_name)
+                st.image(champion_img_url, width=100)
+            except Exception as e:
+                st.write(f"Champion: {champion_name}")
+                print(f"Error loading image for {champion_name}: {e}")  # For debugging
 
 def display_team_stats(team_data, team_name, team_gold):
     total_kills = sum(p["scores"].get("kills", 0) for p in team_data)
