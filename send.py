@@ -7,6 +7,7 @@ app = Flask(__name__)
 # OpenAI API Key
 client = OpenAI(api_key="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")
 
+
 # URLs for data fetching
 player_url = "https://127.0.0.1:2999/liveclientdata/playerlist"
 game_stats_url = "https://127.0.0.1:2999/liveclientdata/gamestats"
