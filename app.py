@@ -8,8 +8,8 @@ from model import ComplexTabularModel
 import altair as alt
 
 
-flask_url = "https://0171-118-200-206-87.ngrok-free.app/data"
-summary_url = "https://0171-118-200-206-87.ngrok-free.app/summarize"
+flask_url = "https://4e8c-42-60-47-213.ngrok-free.app/data"
+summary_url = "https://4e8c-42-60-47-213.ngrok-free.app/summarize"
 
 def fetch_data():
     try:
