@@ -268,7 +268,50 @@ if 'historical_predictions' not in st.session_state:
     st.session_state.historical_predictions = []
     st.session_state.game_times = []
 
-win_prob_tab, teams_tab = st.tabs(["Win Probability", "Team Details"])
+win_prob_tab, teams_tab, summary_tab = st.tabs(["Win Probability", "Team Details", "Game Summary"])
+
+with win_prob_tab:
+    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
+    chart_placeholder = st.empty()
+    team_stats_placeholder = st.empty()
+
+with teams_tab:
+    team_details_placeholder = st.empty()
+
+with summary_tab:
+    summary_placeholder = st.empty()
+    if summary_data:
+        with summary_placeholder.container():
+            st.markdown("### Game Summary")
+            st.markdown("""
+                <style>
+                    .summary-section {
+                        background-color: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 10px;
+                        margin-bottom: 20px;
+                        border-left: 4px solid #4B5563;
+                    }
+                    .summary-title {
+                        color: #1F2937;
+                        font-size: 18px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                    }
+                    .summary-content {
+                        color: #4B5563;
+                        line-height: 1.6;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+
+            for key, value in summary_data.items():
+                st.markdown(f"""
+                    <div class="summary-section">
+                        <div class="summary-title">{key}</div>
+                        <div class="summary-content">{value}</div>
+                    </div>
+                """, unsafe_allow_html=True)
 
 with win_prob_tab:
     chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
