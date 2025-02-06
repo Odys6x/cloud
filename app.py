@@ -268,6 +268,8 @@ if 'historical_predictions' not in st.session_state:
     st.session_state.historical_predictions = []
     st.session_state.game_times = []
 
+summary_data = None
+
 win_prob_tab, teams_tab, summary_tab = st.tabs(["Win Probability", "Team Details", "Game Summary"])
 
 with win_prob_tab:
@@ -320,117 +322,119 @@ with summary_tab:
 
 while True:
     data = fetch_data()
-    summary_data = fetch_summary()
-    if data:
-        player_data = data.get("player_data", [])
-        game_stats = data.get("game_stats", {})
-        event_data = data.get("event_data", {})
-        game_time = game_stats.get("gameTime", 0)
+    while True:
+        data = fetch_data()
+        summary_data = fetch_summary()  # This updates the summary_data variable
+        if data:
+            player_data = data.get("player_data", [])
+            game_stats = data.get("game_stats", {})
+            event_data = data.get("event_data", {})
+            game_time = game_stats.get("gameTime", 0)
 
-        for player in player_data:
-            player['calculated_gold'] = calculate_gold(
-                player["summonerName"],
-                player["scores"]["creepScore"],
-                player["scores"]["wardScore"],
-                game_time,
-                event_data
-            )
-
-            if not isinstance(player.get('items'), list):
-                player['items'] = []
-
-            if player['items']:
-                player['items'] = sorted(player['items'],
-                key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
-
-        team_order_players = [p for p in player_data if p["team"] == "ORDER"]
-        team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
-
-        team_order_gold = sum(p['calculated_gold'] for p in team_order_players)
-        team_chaos_gold = sum(p['calculated_gold'] for p in team_chaos_players)
-
-        model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
-        game_time_minutes = game_time / 60
-        predictions = predict_win_probability(model_input,game_time_minutes)
-
-        with chart_placeholder.container():
-            create_win_probability_chart(predictions, chart_type)
-
-        with team_stats_placeholder.container():
-            st.markdown("### Team Statistics")
-            col1, col2 = st.columns(2)
-
-            with col1:
-                order_k, order_d, order_a = display_team_stats(
-                    team_order_players, "Team Order", team_order_gold
+            for player in player_data:
+                player['calculated_gold'] = calculate_gold(
+                    player["summonerName"],
+                    player["scores"]["creepScore"],
+                    player["scores"]["wardScore"],
+                    game_time,
+                    event_data
                 )
 
-            with col2:
-                chaos_k, chaos_d, chaos_a = display_team_stats(
-                    team_chaos_players, "Team Chaos", team_chaos_gold
-                )
+                if not isinstance(player.get('items'), list):
+                    player['items'] = []
 
-        with team_details_placeholder.container():
-            col1, col2 = st.columns(2)
+                if player['items']:
+                    player['items'] = sorted(player['items'],
+                    key=lambda x: x.get('slot', 0) if isinstance(x, dict) else 0)
 
-            with col1:
-                st.markdown("### Team Order")
-                for player in team_order_players:
-                    display_player_card(player)
+            team_order_players = [p for p in player_data if p["team"] == "ORDER"]
+            team_chaos_players = [p for p in player_data if p["team"] == "CHAOS"]
 
-            with col2:
-                st.markdown("### Team Chaos")
-                for player in team_chaos_players:
-                    display_player_card(player)
+            team_order_gold = sum(p['calculated_gold'] for p in team_order_players)
+            team_chaos_gold = sum(p['calculated_gold'] for p in team_chaos_players)
 
-        with summary_placeholder.container():
-            if summary_data:
-                st.markdown("""
-                    <style>
-                        .card-grid {
-                            display: grid;
-                            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                            gap: 1.5rem;
-                            padding: 1rem;
-                        }
-                        .summary-card {
-                            background: white;
-                            padding: 1.5rem;
-                            border-radius: 10px;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                            transition: transform 0.2s;
-                        }
-                        .summary-card:hover {
-                            transform: translateY(-2px);
-                            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-                        }
-                        .card-title {
-                            font-size: 1.25rem;
-                            font-weight: 600;
-                            color: #3b82f6;
-                            margin-bottom: 1rem;
-                            padding-bottom: 0.5rem;
-                            border-bottom: 2px solid #e5e7eb;
-                        }
-                        .card-content {
-                            color: #4b5563;
-                            line-height: 1.6;
-                            white-space: pre-line;
-                        }
-                    </style>
-                    <div class="card-grid">
-                """, unsafe_allow_html=True)
+            model_input = prepare_model_input(player_data, team_order_gold, team_chaos_gold)
+            game_time_minutes = game_time / 60
+            predictions = predict_win_probability(model_input,game_time_minutes)
 
-                for key, value in summary_data.items():
-                    st.markdown(f"""
-                        <div class="summary-card">
-                            <div class="card-title">{key}</div>
-                            <div class="card-content">{value}</div>
-                        </div>
+            with chart_placeholder.container():
+                create_win_probability_chart(predictions, chart_type)
+
+            with team_stats_placeholder.container():
+                st.markdown("### Team Statistics")
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    order_k, order_d, order_a = display_team_stats(
+                        team_order_players, "Team Order", team_order_gold
+                    )
+
+                with col2:
+                    chaos_k, chaos_d, chaos_a = display_team_stats(
+                        team_chaos_players, "Team Chaos", team_chaos_gold
+                    )
+
+            with team_details_placeholder.container():
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("### Team Order")
+                    for player in team_order_players:
+                        display_player_card(player)
+
+                with col2:
+                    st.markdown("### Team Chaos")
+                    for player in team_chaos_players:
+                        display_player_card(player)
+
+            with summary_placeholder.container():
+                if summary_data:
+                    st.markdown("""
+                        <style>
+                            .card-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                                gap: 1.5rem;
+                                padding: 1rem;
+                            }
+                            .summary-card {
+                                background: white;
+                                padding: 1.5rem;
+                                border-radius: 10px;
+                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                transition: transform 0.2s;
+                            }
+                            .summary-card:hover {
+                                transform: translateY(-2px);
+                                box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+                            }
+                            .card-title {
+                                font-size: 1.25rem;
+                                font-weight: 600;
+                                color: #3b82f6;
+                                margin-bottom: 1rem;
+                                padding-bottom: 0.5rem;
+                                border-bottom: 2px solid #e5e7eb;
+                            }
+                            .card-content {
+                                color: #4b5563;
+                                line-height: 1.6;
+                                white-space: pre-line;
+                            }
+                        </style>
+                        <div class="card-grid">
                     """, unsafe_allow_html=True)
 
-                st.markdown('</div>', unsafe_allow_html=True)
+                    for key, value in summary_data.items():
+                        st.markdown(f"""
+                            <div class="summary-card">
+                                <div class="card-title">{key}</div>
+                                <div class="card-content">{value}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
 
-    else:
-        st.write("Waiting for data...")
-    time.sleep(5)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+        else:
+            st.write("Waiting for data...")
+        time.sleep(5)
