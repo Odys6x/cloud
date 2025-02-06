@@ -284,105 +284,39 @@ with summary_tab:
         with summary_placeholder.container():
             st.markdown("""
                 <style>
-                    .card-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                        gap: 1.5rem;
-                        padding: 1rem;
-                    }
                     .summary-card {
                         background: white;
-                        padding: 1.5rem;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                        transition: transform 0.2s;
+                        padding: 1rem;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        margin-bottom: 1rem;
                     }
-                    .player-name {
-                        font-size: 1.4rem;
+                    .section-title {
+                        font-size: 1.2rem;
                         font-weight: 600;
                         color: #3b82f6;
                         margin-bottom: 0.5rem;
                     }
-                    .champion-name {
-                        color: #6b7280;
-                        font-size: 1.1rem;
-                        margin-bottom: 1rem;
-                    }
-                    .stat-group {
-                        margin: 0.75rem 0;
-                        padding: 0.5rem;
-                        background: #f8fafc;
-                        border-radius: 6px;
-                    }
-                    .stat-title {
-                        font-weight: 600;
+                    .section-content {
                         color: #4b5563;
-                        margin-bottom: 0.25rem;
+                        line-height: 1.5;
                     }
-                    .stat-value {
-                        color: #6b7280;
-                        line-height: 1.4;
-                    }
-                    .game-info {
+                    .highlight {
                         background: #f0f9ff;
-                        padding: 0.75rem;
-                        border-radius: 6px;
-                        margin-top: 1rem;
+                        padding: 0.5rem;
+                        border-radius: 4px;
+                        margin: 0.5rem 0;
                     }
                 </style>
             """, unsafe_allow_html=True)
 
-            # Player Cards
-            st.markdown('<div class="card-grid">', unsafe_allow_html=True)
-
-            # For each player
-            for player in players:
+            for key, value in summary_data.items():
                 st.markdown(f"""
                     <div class="summary-card">
-                        <div class="player-name">{player['name']}</div>
-                        <div class="champion-name">{player['champion']}</div>
-
-                        <div class="stat-group">
-                            <div class="stat-title">Current Status</div>
-                            <div class="stat-value">Level {player['level']} | {player['status']}</div>
-                        </div>
-
-                        <div class="stat-group">
-                            <div class="stat-title">Build</div>
-                            <div class="stat-value">
-                                • {player['items']}<br>
-                                • {player['runes']}<br>
-                                • {player['summoners']}
-                            </div>
-                        </div>
-
-                        <div class="stat-group">
-                            <div class="stat-title">Performance</div>
-                            <div class="stat-value">CS: {player['cs']} | Vision: {player['vision']}</div>
-                        </div>
+                        <div class="section-title">{key}</div>
+                        <div class="section-content">{value}</div>
                     </div>
                 """, unsafe_allow_html=True)
-
-            # Game Context Card
-            st.markdown(f"""
-                <div class="summary-card">
-                    <div class="player-name">Game Overview</div>
-                    <div class="stat-group">
-                        <div class="stat-title">Mode & Time</div>
-                        <div class="stat-value">{game_mode} | {game_time}</div>
-                    </div>
-                    <div class="stat-group">
-                        <div class="stat-title">Map Details</div>
-                        <div class="stat-value">{map_details}</div>
-                    </div>
-                    <div class="game-info">
-                        <div class="stat-title">Current State</div>
-                        <div class="stat-value">{game_state}</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
 
 while True:
     data = fetch_data()
