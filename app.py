@@ -282,29 +282,13 @@ with summary_tab:
     summary_placeholder = st.empty()
     if summary_data:
         with summary_placeholder.container():
-            st.markdown("""
-                <style>
-                    .summary-section {
-                        background: white;
-                        padding: 1rem;
-                        border-radius: 8px;
-                        margin-bottom: 1rem;
-                        border-left: 4px solid #3b82f6;
-                    }
-                    .section-title {
-                        font-weight: 600;
-                        color: #3b82f6;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-
+            st.write("### Game Summary")
             for key, value in summary_data.items():
                 st.markdown(f"""
-                    <div class="summary-section">
-                        <div class="section-title">{key}</div>
-                        {value}
-                    </div>
-                """, unsafe_allow_html=True)
+                    **{key}**  
+                    {value}
+                    ___
+                """)
 
 while True:
     data = fetch_data()
