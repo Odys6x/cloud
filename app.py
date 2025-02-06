@@ -280,61 +280,6 @@ with teams_tab:
 
 with summary_tab:
     summary_placeholder = st.empty()
-    if summary_data:
-        with summary_placeholder.container():
-            st.markdown("""
-                <style>
-                    .card-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                        gap: 1.5rem;
-                        padding: 1rem;
-                    }
-                    .summary-card {
-                        background: white;
-                        padding: 1.5rem;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                        transition: transform 0.2s;
-                    }
-                    .summary-card:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-                    }
-                    .card-title {
-                        font-size: 1.25rem;
-                        font-weight: 600;
-                        color: #3b82f6;
-                        margin-bottom: 1rem;
-                        padding-bottom: 0.5rem;
-                        border-bottom: 2px solid #e5e7eb;
-                    }
-                    .card-content {
-                        color: #4b5563;
-                        line-height: 1.6;
-                        white-space: pre-line;
-                    }
-                </style>
-                <div class="card-grid">
-            """, unsafe_allow_html=True)
-
-            for key, value in summary_data.items():
-                st.markdown(f"""
-                    <div class="summary-card">
-                        <div class="card-title">{key}</div>
-                        <div class="card-content">{value}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-with win_prob_tab:
-    chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
-    chart_placeholder = st.empty()
-    team_stats_placeholder = st.empty()
-
-with teams_tab:
-    team_details_placeholder = st.empty()
 
 while True:
     data = fetch_data()
@@ -401,12 +346,53 @@ while True:
                 for player in team_chaos_players:
                     display_player_card(player)
 
-        summary_placeholder = st.empty()
-        if summary_data:
-            with summary_placeholder.container():  # Use the placeholder to overwrite
-                st.markdown("### Game Summary")
+        with summary_placeholder.container():
+            if summary_data:
+                st.markdown("""
+                    <style>
+                        .card-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                            gap: 1.5rem;
+                            padding: 1rem;
+                        }
+                        .summary-card {
+                            background: white;
+                            padding: 1.5rem;
+                            border-radius: 10px;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                            transition: transform 0.2s;
+                        }
+                        .summary-card:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+                        }
+                        .card-title {
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            color: #3b82f6;
+                            margin-bottom: 1rem;
+                            padding-bottom: 0.5rem;
+                            border-bottom: 2px solid #e5e7eb;
+                        }
+                        .card-content {
+                            color: #4b5563;
+                            line-height: 1.6;
+                            white-space: pre-line;
+                        }
+                    </style>
+                    <div class="card-grid">
+                """, unsafe_allow_html=True)
+
                 for key, value in summary_data.items():
-                    st.markdown(f"**{key}:** {value}")
+                    st.markdown(f"""
+                        <div class="summary-card">
+                            <div class="card-title">{key}</div>
+                            <div class="card-content">{value}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         st.write("Waiting for data...")
