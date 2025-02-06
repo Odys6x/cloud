@@ -282,36 +282,50 @@ with summary_tab:
     summary_placeholder = st.empty()
     if summary_data:
         with summary_placeholder.container():
-            st.markdown("### Game Summary")
             st.markdown("""
                 <style>
-                    .summary-section {
+                    .summary-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                        background: white;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    }
+                    .summary-table th, .summary-table td {
+                        padding: 16px;
+                        text-align: left;
+                        border-bottom: 1px solid #edf2f7;
+                    }
+                    .summary-table th {
+                        background-color: #4B5563;
+                        color: white;
+                        font-weight: 600;
+                    }
+                    .summary-table tr:nth-child(even) {
                         background-color: #f8f9fa;
-                        padding: 20px;
-                        border-radius: 10px;
-                        margin-bottom: 20px;
-                        border-left: 4px solid #4B5563;
                     }
-                    .summary-title {
-                        color: #1F2937;
-                        font-size: 18px;
-                        font-weight: bold;
-                        margin-bottom: 10px;
-                    }
-                    .summary-content {
-                        color: #4B5563;
-                        line-height: 1.6;
+                    .summary-table tr:hover {
+                        background-color: #edf2f7;
                     }
                 </style>
+                <table class="summary-table">
+                    <tr>
+                        <th>Category</th>
+                        <th>Details</th>
+                    </tr>
             """, unsafe_allow_html=True)
 
             for key, value in summary_data.items():
                 st.markdown(f"""
-                    <div class="summary-section">
-                        <div class="summary-title">{key}</div>
-                        <div class="summary-content">{value}</div>
-                    </div>
+                    <tr>
+                        <td><strong>{key}</strong></td>
+                        <td>{value}</td>
+                    </tr>
                 """, unsafe_allow_html=True)
+
+            st.markdown("</table>", unsafe_allow_html=True)
 
 with win_prob_tab:
     chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
