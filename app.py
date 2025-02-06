@@ -284,48 +284,49 @@ with summary_tab:
         with summary_placeholder.container():
             st.markdown("""
                 <style>
-                    .summary-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 20px 0;
+                    .card-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 1.5rem;
+                        padding: 1rem;
+                    }
+                    .summary-card {
                         background: white;
-                        border-radius: 8px;
-                        overflow: hidden;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                        padding: 1.5rem;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        transition: transform 0.2s;
                     }
-                    .summary-table th, .summary-table td {
-                        padding: 16px;
-                        text-align: left;
-                        border-bottom: 1px solid #edf2f7;
+                    .summary-card:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
                     }
-                    .summary-table th {
-                        background-color: #4B5563;
-                        color: white;
+                    .card-title {
+                        font-size: 1.25rem;
                         font-weight: 600;
+                        color: #3b82f6;
+                        margin-bottom: 1rem;
+                        padding-bottom: 0.5rem;
+                        border-bottom: 2px solid #e5e7eb;
                     }
-                    .summary-table tr:nth-child(even) {
-                        background-color: #f8f9fa;
-                    }
-                    .summary-table tr:hover {
-                        background-color: #edf2f7;
+                    .card-content {
+                        color: #4b5563;
+                        line-height: 1.6;
+                        white-space: pre-line;
                     }
                 </style>
-                <table class="summary-table">
-                    <tr>
-                        <th>Category</th>
-                        <th>Details</th>
-                    </tr>
+                <div class="card-grid">
             """, unsafe_allow_html=True)
 
             for key, value in summary_data.items():
                 st.markdown(f"""
-                    <tr>
-                        <td><strong>{key}</strong></td>
-                        <td>{value}</td>
-                    </tr>
+                    <div class="summary-card">
+                        <div class="card-title">{key}</div>
+                        <div class="card-content">{value}</div>
+                    </div>
                 """, unsafe_allow_html=True)
 
-            st.markdown("</table>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 with win_prob_tab:
     chart_type = st.radio("Select Chart Type", ["Bar Chart", "Line Chart"], horizontal=True)
