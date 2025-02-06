@@ -280,6 +280,7 @@ with teams_tab:
 
 with summary_tab:
     summary_placeholder = st.empty()
+    summary_data = fetch_summary()
     if summary_data:
         with summary_placeholder.container():
             st.write("### Game Summary")
