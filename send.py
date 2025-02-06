@@ -5,7 +5,8 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # OpenAI API Key
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
+
 
 # URLs for data fetching
 player_url = "https://127.0.0.1:2999/liveclientdata/playerlist"
