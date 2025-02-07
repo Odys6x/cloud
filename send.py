@@ -5,8 +5,7 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # OpenAI API Key
-client = OpenAI(api_key="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")
-
+client = OpenAI(api_key="")
 
 # URLs for data fetching
 player_url = "https://127.0.0.1:2999/liveclientdata/playerlist"
@@ -38,30 +37,26 @@ def get_data():
 
 @app.route('/summarize', methods=['GET'])
 def summarize_data():
-    # Fetch and combine data
-    player_data = fetch_data(player_url)
-    game_stats = fetch_data(game_stats_url)
-    event_data = fetch_data(event_url)
-
-    combined_data = {
-        "player_data": player_data,
-        "game_stats": game_stats,
-        "event_data": event_data
-    }
-
-    # Call OpenAI API to summarize
     try:
+        player_data = fetch_data(player_url)
+        game_stats = fetch_data(game_stats_url)
+        event_data = fetch_data(event_url)
+
+        # Split data into smaller chunks
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that provides brief summaries and reasoning for League of Legends game data in JSON format. Perhaps do explain why players did well and why some did not"},
-                {"role": "user", "content": str(combined_data)}
+                {"role": "system", "content": "Provide a brief, focused summary of this League of Legends game data. Focus on key events and player performance metrics."},
+                {"role": "user", "content": str({
+                    "player_data": player_data[:5],  # Limit player data
+                    "game_stats": game_stats,
+                    "key_events": event_data[-10:]  # Last 10 events only
+                })}
             ]
         )
-        summary = completion.choices[0].message.content
-        return jsonify({"summary": summary})
+        return jsonify({"summary": completion.choices[0].message.content})
     except Exception as e:
-        print(f"Error calling OpenAI API: {e}")
+        print(f"Error details: {str(e)}")
         return jsonify({"error": "Failed to summarize data"}), 500
 
 
