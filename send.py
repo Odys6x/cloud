@@ -42,16 +42,21 @@ def summarize_data():
         game_stats = fetch_data(game_stats_url)
         event_data = fetch_data(event_url)
 
-        # Split data into smaller chunks
+        # Limit data size
+        limited_data = {
+            "game_stats": game_stats,
+            "key_stats": {
+                "total_kills": sum(p.get("scores", {}).get("kills", 0) for p in player_data),
+                "game_time": game_stats.get("gameTime", 0)
+            },
+            "recent_events": event_data[-5:] if event_data else []
+        }
+
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Provide a brief, focused summary of this League of Legends game data. Focus on key events and player performance metrics."},
-                {"role": "user", "content": str({
-                    "player_data": player_data[:5],  # Limit player data
-                    "game_stats": game_stats,
-                    "key_events": event_data[-10:]  # Last 10 events only
-                })}
+                {"role": "system", "content": "Provide a brief game summary focusing on key events and overall game state."},
+                {"role": "user", "content": str(limited_data)}
             ]
         )
         return jsonify({"summary": completion.choices[0].message.content})
