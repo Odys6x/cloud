@@ -7,6 +7,7 @@ import pandas as pd
 from model import ComplexTabularModel
 import altair as alt
 
+
 flask_url = "https://353e-103-30-215-137.ngrok-free.app/data"
 summary_url = "https://353e-103-30-215-137.ngrok-free.app/summarize"
 
