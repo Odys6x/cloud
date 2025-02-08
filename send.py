@@ -45,21 +45,42 @@ def summarize_data():
         game_stats = fetch_data(game_stats_url)
         event_data = fetch_data(event_url)
 
-        # Convert event_data list to recent events only
-        recent_events = []
+        # Simplify and reduce player data
+        simplified_players = []
+        for player in player_data:
+            simplified_players.append({
+                "name": player.get("summonerName", ""),
+                "champion": player.get("championName", ""),
+                "team": player.get("team", ""),
+                "kda": f"{player.get('scores', {}).get('kills', 0)}/{player.get('scores', {}).get('deaths', 0)}/{player.get('scores', {}).get('assists', 0)}"
+            })
+
+        # Take only essential game stats
+        simplified_game_stats = {
+            "gameTime": game_stats.get("gameTime", 0),
+            "gameMode": game_stats.get("gameMode", "")
+        }
+
+        # Take only significant events
+        significant_events = []
         if isinstance(event_data, list):
-            recent_events = event_data[-5:] if len(event_data) > 5 else event_data
+            for event in event_data[-3:]:  # Only last 3 events
+                if event.get("EventName") in ["ChampionKill", "DragonKill", "BaronKill", "TurretKilled"]:
+                    significant_events.append({
+                        "type": event.get("EventName"),
+                        "killer": event.get("KillerName")
+                    })
 
         limited_data = {
-            "game_stats": game_stats,
-            "player_summary": player_data,
-            "recent_events": recent_events
+            "game": simplified_game_stats,
+            "players": simplified_players,
+            "key_events": significant_events
         }
 
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Provide a very brief game summary focusing on key events and overall game state."},
+                {"role": "system", "content": "Provide a 2-3 sentence game summary focusing only on the most important events and state."},
                 {"role": "user", "content": str(limited_data)}
             ]
         )
