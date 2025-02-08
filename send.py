@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request
 import requests
 from openai import OpenAI
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 
@@ -42,20 +45,21 @@ def summarize_data():
         game_stats = fetch_data(game_stats_url)
         event_data = fetch_data(event_url)
 
-        # Limit data size
+        # Convert event_data list to recent events only
+        recent_events = []
+        if isinstance(event_data, list):
+            recent_events = event_data[-5:] if len(event_data) > 5 else event_data
+
         limited_data = {
             "game_stats": game_stats,
-            "key_stats": {
-                "total_kills": sum(p.get("scores", {}).get("kills", 0) for p in player_data),
-                "game_time": game_stats.get("gameTime", 0)
-            },
-            "recent_events": event_data[-5:] if event_data else []
+            "player_summary": player_data,
+            "recent_events": recent_events
         }
 
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Provide a brief game summary focusing on key events and overall game state."},
+                {"role": "system", "content": "Provide a very brief game summary focusing on key events and overall game state."},
                 {"role": "user", "content": str(limited_data)}
             ]
         )
